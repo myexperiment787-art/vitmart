@@ -1,10 +1,10 @@
 export default function Navbar() {
   return (
-    <nav className="flex justify-between items-center p-4 bg-black text-white">
-      <h1 className="text-xl font-bold">VITMART</h1>
-      <div className="space-x-4">
-        <a href="/">Home</a>
-        <a href="/cart">Cart</a>
+    <nav className="flex justify-between items-center px-8 py-4 bg-black text-white">
+      <h1 className="text-2xl font-bold">VIT MART</h1>
+      <div className="flex gap-6 text-lg">
+        <a href="/" className="hover:text-gray-300">Home</a>
+        <a href="/cart" className="hover:text-gray-300">Cart</a>
       </div>
     </nav>
   );

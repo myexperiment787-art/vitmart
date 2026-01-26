@@ -11,7 +11,7 @@ export default function Home() {
   return (
     <>
       <Navbar />
-      <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="max-w-6xl mx-auto p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
         {products.map((p, i) => (
           <ProductCard key={i} name={p.name} price={p.price} />
         ))}
