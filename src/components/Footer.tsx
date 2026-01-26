@@ -33,7 +33,7 @@ export default function Footer() {
             Contact Info
           </h3>
           <p className="text-gray-300 mb-2">
-            📞 +91 17865343
+            📞 +91 9117865343
           </p>
           <p className="text-gray-300">
             ✉️ myexperiment787@gmail.com
