@@ -1,25 +1,25 @@
 export default function Footer() {
   return (
-    <footer className="bg-gradient-to-r from-slate-900 to-slate-800 text-white mt-16">
-      <div className="max-w-6xl mx-auto px-6 py-12 grid grid-cols-1 md:grid-cols-3 gap-8">
+    <footer className="bg-gradient-to-b from-[#0f172a] to-[#020617] text-gray-300 mt-20">
+      <div className="max-w-7xl mx-auto px-8 py-16 grid grid-cols-1 md:grid-cols-3 gap-12">
 
-        {/* Brand Info */}
+        {/* Brand */}
         <div>
           <h2 className="text-2xl font-bold text-yellow-400 mb-4">
             VIT MART
           </h2>
-          <p className="text-gray-300">
+          <p className="leading-relaxed">
             Your trusted online store for quality products,
             delivered with care and convenience.
           </p>
         </div>
 
-        {/* Quick Links */}
+        {/* Links */}
         <div>
-          <h3 className="text-xl font-semibold mb-4 text-yellow-400">
+          <h3 className="text-lg font-semibold text-yellow-400 mb-4">
             Quick Links
           </h3>
-          <ul className="space-y-2 text-gray-300">
+          <ul className="space-y-3">
             <li className="hover:text-white cursor-pointer">Home</li>
             <li className="hover:text-white cursor-pointer">Products</li>
             <li className="hover:text-white cursor-pointer">Categories</li>
@@ -27,23 +27,22 @@ export default function Footer() {
           </ul>
         </div>
 
-        {/* Contact Info */}
+        {/* Contact */}
         <div>
-          <h3 className="text-xl font-semibold mb-4 text-yellow-400">
+          <h3 className="text-lg font-semibold text-yellow-400 mb-4">
             Contact Info
           </h3>
-          <p className="text-gray-300 mb-2">
-            📞 +91 9117865343
+          <p className="mb-3 flex items-center gap-2">
+            📞 <span>+91 9117865343</span>
           </p>
-          <p className="text-gray-300">
-            ✉️ myexperiment787@gmail.com
+          <p className="flex items-center gap-2">
+            ✉️ <span>myexperiment787@gmail.com</span>
           </p>
         </div>
-
       </div>
 
       {/* Bottom Bar */}
-      <div className="border-t border-gray-700 text-center py-4 text-gray-400 text-sm">
+      <div className="border-t border-gray-700 py-6 text-center text-sm text-gray-400">
         © 2025 VIT MART. All rights reserved.
       </div>
     </footer>
