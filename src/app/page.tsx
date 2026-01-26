@@ -1,5 +1,7 @@
 import Navbar from "../components/Navbar";
 import ProductCard from "../components/ProductCard";
+import Footer from "../components/Footer";
+
 
 const products = [
   { name: "Smart Watch", price: 49 },
@@ -16,6 +18,8 @@ export default function Home() {
           <ProductCard key={i} name={p.name} price={p.price} />
         ))}
       </div>
+
+      <Footer />
     </>
   );
 }
