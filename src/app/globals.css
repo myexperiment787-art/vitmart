@@ -36,3 +36,13 @@
   text-align: center;
   margin: 0;
 }
+
+.landscape-only {
+  display: none;
+}
+
+@media (orientation: landscape) {
+  .landscape-only {
+    display: block;
+  }
+}

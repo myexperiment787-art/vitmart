@@ -1,5 +1,7 @@
 import Navbar from "../components/Navbar";
 import ProductCard from "../components/ProductCard";
+import WhyChoose from "../components/WhyChoose";
+
 
 
 
@@ -18,6 +20,9 @@ export default function Home() {
           <ProductCard key={i} name={p.name} price={p.price} />
         ))}
       </div>
+
+      <WhyChoose />
+
 
       
     </>
