@@ -46,3 +46,15 @@
     display: block;
   }
 }
+
+@media screen and (max-width: 767px) and (orientation: portrait) {
+  .landscape-only {
+    display: none;
+  }
+}
+
+@media screen and (max-width: 767px) and (orientation: landscape) {
+  .landscape-only {
+    display: block;
+  }
+}
