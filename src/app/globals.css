@@ -48,48 +48,84 @@
 }
 
 
-/* ===== Feature Cards ===== */
+.why-choose-section {
+  padding: 4rem 1.5rem;
+  background: white;
+}
+
+/* Title */
+.title {
+  text-align: center;
+  font-size: 2.5rem;
+  font-weight: bold;
+  margin-bottom: 3rem;
+}
+
+/* Grid */
+.features-grid {
+  max-width: 1200px;
+  margin: auto;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2rem;
+}
+
+/* Card */
 .feature-card {
-  background: #ffffff;
-  border-radius: 16px;
-  padding: 28px;
+  background: #fff;
+  padding: 2rem;
+  border-radius: 18px;
   text-align: center;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
 }
 
-.feature-card h3 {
-  font-size: 1.25rem;
-  font-weight: 700;
-  margin-top: 12px;
-}
-
-.feature-card p {
-  font-size: 0.95rem;
-  margin-top: 8px;
-  color: #555;
-}
-
+/* Icon */
 .icon {
-  font-size: 2rem;
+  font-size: 2.2rem;
+  margin-bottom: 0.75rem;
 }
 
-/* ===== VISIBILITY RULES ===== */
-
-/* Default: visible */
-.why-choose {
-  display: block;
+/* ===== ANIMATION ===== */
+.fade-up {
+  opacity: 0;
+  transform: translateY(40px);
+  animation: fadeUp 0.8s ease forwards;
 }
 
-/* Hide ONLY on mobile portrait */
-@media screen and (max-width: 768px) and (orientation: portrait) {
-  .why-choose {
-    display: none !important;
+.delay-1 { animation-delay: 0.2s; }
+.delay-2 { animation-delay: 0.4s; }
+.delay-3 { animation-delay: 0.6s; }
+
+@keyframes fadeUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
-/* Show on mobile landscape */
-@media screen and (max-width: 768px) and (orientation: landscape) {
-  .why-choose {
-    display: block !important;
+/* ===== RESPONSIVE ===== */
+
+/* Tablet & mobile layout */
+@media (max-width: 1024px) {
+  .features-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Mobile portrait: HIDE */
+@media (max-width: 768px) and (orientation: portrait) {
+  .why-choose-section {
+    display: none;
+  }
+}
+
+/* Mobile landscape: SHOW */
+@media (max-width: 768px) and (orientation: landscape) {
+  .why-choose-section {
+    display: block;
+  }
+
+  .features-grid {
+    grid-template-columns: 1fr;
   }
 }
