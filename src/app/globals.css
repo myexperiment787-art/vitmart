@@ -1,3 +1,38 @@
+/* Tailwind directives */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* FORCE footer styling */
+.vit-footer {
+  background-color: #000;
+  color: #fff;
+  padding: 40px 60px;
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 60px;
+}
+
+.vit-footer h2,
+.vit-footer h3,
+.vit-footer p,
+.vit-footer li {
+  color: #fff;
+}
+
+.vit-footer ul {
+  padding-left: 20px;
+}
+
+.vit-footer hr {
+  grid-column: 1 / -1;
+  border: none;
+  border-top: 1px solid #444;
+  margin: 30px 0;
+}
+
+.vit-footer p:last-child {
+  grid-column: 1 / -1;
+  text-align: center;
+  margin: 0;
+}
