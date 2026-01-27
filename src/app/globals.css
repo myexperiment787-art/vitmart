@@ -65,3 +65,21 @@
     display: block !important;
   }
 }
+
+.why-choose {
+  display: block;
+}
+
+/* HIDE on mobile portrait */
+@media screen and (max-width: 768px) and (orientation: portrait) {
+  .why-choose {
+    display: none !important;
+  }
+}
+
+/* SHOW on mobile landscape */
+@media screen and (max-width: 768px) and (orientation: landscape) {
+  .why-choose {
+    display: block !important;
+  }
+}

@@ -27,7 +27,7 @@ const features = [
 
 export default function WhyChoose() {
   return (
-    <section className="landscape-only md:block py-16 text-center">
+    <section className="why-choose">
 
       {/* Heading */}
       <h2 className="text-4xl font-bold mb-12">
