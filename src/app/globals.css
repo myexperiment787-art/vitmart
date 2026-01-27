@@ -47,6 +47,10 @@
   }
 }
 
+
+.why-choose-section {
+  display: block;
+}
 @media screen and (max-width: 767px) and (orientation: portrait) {
   .landscape-only {
     display: none;
