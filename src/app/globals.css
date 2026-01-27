@@ -51,14 +51,17 @@
 .why-choose-section {
   display: block;
 }
-@media screen and (max-width: 767px) and (orientation: portrait) {
-  .landscape-only {
-    display: none;
+
+/* HIDE on mobile portrait */
+@media screen and (max-width: 768px) and (orientation: portrait) {
+  .why-choose-section {
+    display: none !important;
   }
 }
 
-@media screen and (max-width: 767px) and (orientation: landscape) {
-  .landscape-only {
-    display: block;
+/* SHOW on mobile landscape */
+@media screen and (max-width: 768px) and (orientation: landscape) {
+  .why-choose-section {
+    display: block !important;
   }
 }
