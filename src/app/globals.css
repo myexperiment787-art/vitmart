@@ -112,12 +112,29 @@
   }
 }
 
-/* Mobile portrait: HIDE */
-@media (max-width: 768px) and (orientation: portrait) {
+/* ===== MOBILE FIX ===== */
+
+@media (max-width: 768px) {
   .why-choose-section {
-    display: none;
+    display: block;
+    padding: 2.5rem 1.2rem;
+  }
+
+  .title {
+    font-size: 1.8rem;
+    margin-bottom: 2rem;
+  }
+
+  .features-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .feature-card {
+    padding: 1.8rem;
   }
 }
+
 
 /* Mobile landscape: SHOW */
 @media (max-width: 768px) and (orientation: landscape) {
