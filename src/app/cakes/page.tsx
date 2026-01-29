@@ -1,31 +1,53 @@
-export default function CakesPage() {
-  const cakes = [
-    { name: "Chocolate Cake", price: "₹499" },
-    { name: "Vanilla Cake", price: "₹399" },
-    { name: "Red Velvet Cake", price: "₹699" },
-    { name: "Black Forest Cake", price: "₹599" },
-  ];
+import Image from "next/image";
 
+export default function CakesPage() {
   return (
-    <div className="p-6">
-      <h1 className="text-3xl font-bold text-center mb-6">
-        🍰 Cake Varieties
+    <div className="px-6 py-10">
+      <h1 className="text-3xl font-bold text-center mb-8">
+        Our Cake Collection 🎂
       </h1>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        {cakes.map((cake, index) => (
-          <div
-            key={index}
-            className="border rounded-xl p-4 shadow hover:shadow-lg transition"
-          >
-            <h2 className="text-xl font-semibold">{cake.name}</h2>
-            <p className="text-gray-600 mt-2">{cake.price}</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+        
+        {/* Cake 1 */}
+        <div className="bg-white rounded-xl shadow p-4 text-center">
+          <Image
+            src="/cakes/chocolate.jpg"
+            alt="Chocolate Cake"
+            width={300}
+            height={200}
+            className="rounded-lg mx-auto"
+          />
+          <h2 className="mt-3 font-semibold">Chocolate Cake</h2>
+          <p className="text-gray-600">₹499</p>
+        </div>
 
-            <button className="mt-4 w-full bg-pink-600 text-white py-2 rounded">
-              Add to Cart
-            </button>
-          </div>
-        ))}
+        {/* Cake 2 */}
+        <div className="bg-white rounded-xl shadow p-4 text-center">
+          <Image
+            src="/cakes/vanilla.jpg"
+            alt="Vanilla Cake"
+            width={300}
+            height={200}
+            className="rounded-lg mx-auto"
+          />
+          <h2 className="mt-3 font-semibold">Vanilla Cake</h2>
+          <p className="text-gray-600">₹399</p>
+        </div>
+
+        {/* Cake 3 */}
+        <div className="bg-white rounded-xl shadow p-4 text-center">
+          <Image
+            src="/cakes/redvelvet.jpg"
+            alt="Red Velvet Cake"
+            width={300}
+            height={200}
+            className="rounded-lg mx-auto"
+          />
+          <h2 className="mt-3 font-semibold">Red Velvet Cake</h2>
+          <p className="text-gray-600">₹549</p>
+        </div>
+
       </div>
     </div>
   );
