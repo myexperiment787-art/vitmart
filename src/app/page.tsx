@@ -1,6 +1,8 @@
 import Navbar from "../components/Navbar";
 import ProductCard from "../components/ProductCard";
 import WhyChoose from "../components/WhyChoose";
+import Hero from "../components/Hero";
+import Link from "next/link";
 
 
 
@@ -28,3 +30,11 @@ export default function Home() {
     </>
   );
 }
+
+<Link href="/cakes">
+  <button className="px-4 py-2 bg-pink-600 text-white rounded-full">
+    🎂 Cakes
+  </button>
+</Link>
+
+
