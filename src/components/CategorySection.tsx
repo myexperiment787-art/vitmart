@@ -29,7 +29,10 @@ const categories = [
 
 export default function CategorySection() {
   return (
-    <section style={{ padding: "40px", background: "#f5f5f5" }}>
+    <section 
+      id="categories"
+      style={{ padding: "40px", background: "#f5f5f5" }}
+    >
       <h2
         style={{
           textAlign: "center",
