@@ -24,8 +24,8 @@ export default function Hero() {
         <Link href="#categories">
           <button 
           style={{
-            marginTop: "354px",
-            padding: "48px 180px",
+            marginTop: "300px",
+            padding: "48px 100px",
             fontSize: "30px",
             borderRadius: "999px",
             background: "#ffffff",
