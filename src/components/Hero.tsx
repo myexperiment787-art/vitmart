@@ -21,24 +21,7 @@ export default function Hero() {
       <div className="relative z-10 text-center px-6 max-w-3xl">
         
         {/* BUTTON */}
-        <Link href="#categories">
-          <button 
-          style={{
-            marginTop: "300px",
-            padding: "48px 100px",
-            fontSize: "30px",
-            borderRadius: "999px",
-            background: "#ffffff",
-            color: "#7c3aed",
-            fontWeight: "600",
-            border: "none",
-            cursor: "pointer",
-            boxShadow: "0 10px 25px rgba(0,0,0,0.2)",
-          }}
-        >  
-            Explore Collection
-          </button>
-        </Link>
+        
       </div>
     </section>
   );
