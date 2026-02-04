@@ -4,8 +4,8 @@ export default function Hero() {
   return (
     <section
       className="
-        relative w-full
-        min-h-[60vh] sm:min-h-[70vh] md:min-h-[80vh]
+        relative w-full 
+        h-[45vh] sm:h-[60vh] md:h-[75vh]
         flex items-center justify-center
         overflow-hidden
       "
@@ -16,16 +16,17 @@ export default function Hero() {
         alt="VitMart Hero"
         fill
         priority
-        className="object-cover object-center"
+        className="
+          object-cover
+          object-center
+        "
       />
 
       {/* DARK OVERLAY */}
-      <div className="absolute inset-0 bg-black/40" />
+      <div className="absolute inset-0 bg-black/40"></div>
 
       {/* CONTENT */}
-      <div className="relative z-10 text-center px-4 max-w-3xl">
-        
-
+      <div className="relative z-10 text-center px-4 sm:px-6 max-w-3xl">
         
       </div>
     </section>
