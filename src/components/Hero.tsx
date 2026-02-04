@@ -19,9 +19,6 @@ export default function Hero() {
 
       {/* CONTENT */}
       <div className="relative z-10 text-center px-6 max-w-3xl">
-        
-        {/* BUTTON */}
-        
       </div>
     </section>
   );
