@@ -1,4 +1,5 @@
 import Image from "next/image";
+import TopBanner from "../../components/TopBanner";
 
 const fruits = [
   {
@@ -20,39 +21,45 @@ const fruits = [
 
 export default function FruitsPage() {
   return (
-    <div className="px-6 py-10 max-w-6xl mx-auto">
-      <h1 className="text-3xl font-bold text-center mb-10">
-        🍎 Fresh Fruits
-      </h1>
+    <>
+      {/* TOP INFO BANNER */}
+      <TopBanner />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
-        {fruits.map((fruit) => (
-          <div
-            key={fruit.name}
-            className="bg-white rounded-2xl shadow-md p-4 text-center"
-          >
-            <Image
-              src={fruit.image}
-              alt={fruit.name}
-              width={300}
-              height={200}
-              className="rounded-xl mx-auto"
-            />
+      {/* FRUITS CONTENT */}
+      <div className="px-6 py-10 max-w-6xl mx-auto">
+        <h1 className="text-3xl font-bold text-center mb-10">
+          🍎 Fresh Fruits
+        </h1>
 
-            <h2 className="text-xl font-semibold mt-4">
-              {fruit.name}
-            </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
+          {fruits.map((fruit) => (
+            <div
+              key={fruit.name}
+              className="bg-white rounded-2xl shadow-md p-4 text-center hover:shadow-xl transition"
+            >
+              <Image
+                src={fruit.image}
+                alt={fruit.name}
+                width={300}
+                height={200}
+                className="rounded-xl mx-auto object-cover"
+              />
 
-            <p className="text-gray-600 mt-2">
-              {fruit.price}
-            </p>
+              <h2 className="text-xl font-semibold mt-4">
+                {fruit.name}
+              </h2>
 
-            <button className="mt-4 bg-emerald-600 text-white px-4 py-2 rounded-full hover:bg-emerald-700">
-              Add to Cart
-            </button>
-          </div>
-        ))}
+              <p className="text-gray-600 mt-2">
+                {fruit.price}
+              </p>
+
+              <button className="mt-4 bg-emerald-600 text-white px-5 py-2 rounded-full hover:bg-emerald-700 transition">
+                Add to Cart
+              </button>
+            </div>
+          ))}
+        </div>
       </div>
-    </div>
+    </>
   );
 }
