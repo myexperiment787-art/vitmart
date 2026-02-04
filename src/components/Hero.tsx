@@ -1,24 +1,32 @@
-import Link from "next/link";
 import Image from "next/image";
 
 export default function Hero() {
   return (
-    <section className="relative w-full h-[75vh] flex items-center justify-center overflow-hidden">
-      
+    <section
+      className="
+        relative w-full
+        min-h-[60vh] sm:min-h-[70vh] md:min-h-[80vh]
+        flex items-center justify-center
+        overflow-hidden
+      "
+    >
       {/* BACKGROUND IMAGE */}
       <Image
-        src="/hero/hero-banner.jpg"   // keep your existing image
+        src="/hero/hero-banner.jpg"
         alt="VitMart Hero"
         fill
         priority
-        className="object-cover"
+        className="object-cover object-center"
       />
 
-      {/* OVERLAY */}
-      <div className="absolute inset-0 bg-black/40"></div>
+      {/* DARK OVERLAY */}
+      <div className="absolute inset-0 bg-black/40" />
 
       {/* CONTENT */}
-      <div className="relative z-10 text-center px-6 max-w-3xl">
+      <div className="relative z-10 text-center px-4 max-w-3xl">
+        
+
+        
       </div>
     </section>
   );
