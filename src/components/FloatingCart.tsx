@@ -37,7 +37,7 @@ ${itemsText}
   Delivery: ${deliveryCharge === 0 ? "FREE" : `₹${deliveryCharge}`}
   *Grand Total: ₹${grandTotal}*
 
-📍 THIS IS THE DELEVERY ADDRESS.
+📍 TYPE YOUR DELEVERY ADDRESS.
     `;
 
     const url = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(
