@@ -10,7 +10,12 @@ export default function MedicinePage() {
   return (
     <section className="min-h-[70vh] flex items-center justify-center px-4">
       <div className="max-w-2xl w-full text-center space-y-6">
-        
+
+        {/* ✅ TOP TRUST / LEGAL NOTICE */}
+        <p className="text-sm text-gray-600 font-medium">
+          🩺 Verified Medicines | Doctor’s Prescription Mandatory
+        </p>
+
         {/* Heading */}
         <h1 className="text-3xl md:text-4xl font-bold flex items-center justify-center gap-3">
           💊 Order Medicines Easily
