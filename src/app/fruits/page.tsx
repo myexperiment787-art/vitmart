@@ -1,35 +1,34 @@
 "use client";
+
 import Image from "next/image";
 import TopBanner from "../../components/TopBanner";
 import { useCart } from "../../context/CartContext";
 
-const fruits = [
-  {
-    name: "Apple PER KG ",
-    price: 120,
-    image: "/fruits/apple.jpg",
-  },
-  {
-    name: "Banana",
-    price: 60,
-    image: "/fruits/banana.jpg",
-  },
-  {
-    name: "Orange",
-    price: 80,
-    image: "/fruits/orange.jpg",
-  },
-];
-
 export default function FruitsPage() {
   const { addToCart } = useCart();
 
+  const fruits = [
+    {
+      name: "Apple PER KG",
+      price: 120,
+      image: "/fruits/apple.jpg",
+    },
+    {
+      name: "Banana",
+      price: 60,
+      image: "/fruits/banana.jpg",
+    },
+    {
+      name: "Orange",
+      price: 80,
+      image: "/fruits/orange.jpg",
+    },
+  ];
+
   return (
     <>
-      {/* TOP INFO BANNER */}
       <TopBanner />
 
-      {/* FRUITS CONTENT */}
       <div className="px-6 py-10 max-w-6xl mx-auto">
         <h1 className="text-3xl font-bold text-center mb-10">
           🍎 Fresh Fruits
@@ -39,24 +38,23 @@ export default function FruitsPage() {
           {fruits.map((fruit) => (
             <div
               key={fruit.name}
-              className="bg-white rounded-2xl shadow-md p-4 text-center hover:shadow-xl transition"
+              className="bg-white rounded-xl shadow-md p-4 text-center"
             >
               <Image
                 src={fruit.image}
                 alt={fruit.name}
                 width={300}
                 height={200}
-                className="rounded-xl mx-auto object-cover"
+                className="rounded-xl mx-auto"
               />
 
               <h2 className="text-xl font-semibold mt-4">
                 {fruit.name}
               </h2>
 
-              <p className="text-gray-600 mt-2">
-                {fruit.price}
-              </p>
+              <p className="mt-2">₹{fruit.price}</p>
 
+              {/* ✅ THIS IS THE FIX */}
               <button
                 onClick={() =>
                   addToCart({
@@ -65,11 +63,10 @@ export default function FruitsPage() {
                     image: fruit.image,
                   })
                 }
-                className="mt-4 bg-emerald-600 text-white px-5 py-2 rounded-full hover:bg-emerald-700 transition"
+                className="mt-4 bg-emerald-600 text-white px-5 py-2 rounded-full"
               >
                 Add to Cart
               </button>
-
             </div>
           ))}
         </div>

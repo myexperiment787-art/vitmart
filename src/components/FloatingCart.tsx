@@ -1,44 +1,53 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useCart } from "../context/CartContext";
 
 export default function FloatingCart() {
   const { cart, increaseQty, decreaseQty } = useCart();
+  const [open, setOpen] = useState(false);
 
+  // 🔥 AUTO OPEN CART WHEN FIRST ITEM IS ADDED
+  useEffect(() => {
+    if (cart.length > 0) {
+      setOpen(true);
+    }
+  }, [cart.length]);
+
+  // ❌ HIDE COMPLETELY IF CART IS EMPTY
   if (cart.length === 0) return null;
 
-  // 🧮 SUBTOTAL
-  const totalPrice = cart.reduce(
+  // 🧮 PRICE CALCULATION
+  const subTotal = cart.reduce(
     (sum, item) => sum + item.price * item.quantity,
     0
   );
 
-  // 🚚 DELIVERY LOGIC
-  const deliveryCharge = totalPrice < 199 ? 20 : 0;
-  const grandTotal = totalPrice + deliveryCharge;
+  const delivery = subTotal >= 199 ? 0 : 20;
+  const total = subTotal + delivery;
 
-  // 📲 WhatsApp Checkout
+  // 📲 WHATSAPP CHECKOUT
   const handleCheckout = () => {
-    const phoneNumber = "919117865343"; // 🔴 replace if needed
+    const phoneNumber = "919117865343"; // change if needed
 
     const itemsText = cart
       .map(
         (item) =>
-          `• ${item.name} × ${item.quantity} = ₹${item.price * item.quantity}`
+          `• ${item.name} × ${item.quantity} = ₹${
+            item.price * item.quantity
+          }`
       )
       .join("\n");
 
     const message = `
-  *New Order from VitMart*
+🛒 *New Order from VitMart*
 
 ${itemsText}
 
-  Subtotal: ₹${totalPrice}
-  Delivery: ${deliveryCharge === 0 ? "FREE" : `₹${deliveryCharge}`}
-  *Grand Total: ₹${grandTotal}*
-
-📍 TYPE YOUR DELEVERY ADDRESS.
-    `;
+Subtotal: ₹${subTotal}
+Delivery: ${delivery === 0 ? "FREE" : `₹${delivery}`}
+Total: ₹${total}
+`;
 
     const url = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(
       message
@@ -48,77 +57,96 @@ ${itemsText}
   };
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        top: "80px",
-        right: "16px",
-        zIndex: 99999,
-      }}
-      className="bg-white shadow-2xl rounded-xl p-4 w-64 border"
-    >
-      <h3 className="font-bold mb-3 text-center">🛒 Your Cart</h3>
-
-      {cart.map((item) => (
-        <div
-          key={item.name}
-          className="flex justify-between items-center mb-3"
+    <>
+      {/* 🛒 CART ICON */}
+      <div
+        style={{
+          position: "fixed",
+          top: "16px",
+          right: "16px",
+          zIndex: 2147483647,
+        }}
+      >
+        <button
+          onClick={() => setOpen(!open)}
+          style={{
+            width: "72px",
+            height: "72px",
+            borderRadius: "50%",
+            background: "#059669",
+            color: "#fff",
+            fontSize: "28px",
+            boxShadow: "0 10px 30px rgba(0,0,0,0.4)",
+            border: "none",
+            cursor: "pointer",
+          }}
         >
-          <span className="text-sm font-medium">{item.name}</span>
-
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => decreaseQty(item.name)}
-              className="px-2 py-1 bg-gray-200 rounded"
-            >
-              −
-            </button>
-
-            <span className="text-sm">{item.quantity}</span>
-
-            <button
-              onClick={() => increaseQty(item.name)}
-              className="px-2 py-1 bg-gray-200 rounded"
-            >
-              +
-            </button>
-          </div>
-        </div>
-      ))}
-
-      {/* 🧾 BILL SUMMARY */}
-      <div className="border-t pt-3 mt-3 text-sm">
-        <div className="flex justify-between mb-1">
-          <span>Subtotal</span>
-          <span>₹{totalPrice}</span>
-        </div>
-
-        <div className="flex justify-between mb-1">
-          <span>Delivery</span>
-          <span>
-            {deliveryCharge === 0 ? "FREE" : `₹${deliveryCharge}`}
-          </span>
-        </div>
-
-        <div className="flex justify-between font-semibold mt-2">
-          <span>Total</span>
-          <span>₹{grandTotal}</span>
-        </div>
-
-        {deliveryCharge > 0 && (
-          <p className="text-xs text-red-500 mt-2 text-center">
-            Add ₹{199 - totalPrice} more for FREE delivery 🚚
-          </p>
-        )}
+          🛒
+        </button>
       </div>
 
-      {/* ✅ CHECKOUT BUTTON */}
-      <button
-        onClick={handleCheckout}
-        className="mt-4 w-full bg-green-600 text-white py-2 rounded-lg font-semibold hover:bg-green-700 transition"
-      >
-        ✅ Checkout on WhatsApp
-      </button>
-    </div>
+      {/* 📦 CART PANEL */}
+      {open && (
+        <div
+          style={{
+            position: "fixed",
+            top: "100px",
+            right: "16px",
+            zIndex: 2147483647,
+            width: "320px",
+            background: "#fff",
+            padding: "16px",
+            borderRadius: "12px",
+            boxShadow: "0 10px 40px rgba(0,0,0,0.4)",
+          }}
+        >
+          <h3 style={{ textAlign: "center", fontWeight: "bold" }}>
+            🛒 Your Cart
+          </h3>
+
+          {cart.map((item) => (
+            <div
+              key={item.name}
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                marginTop: "10px",
+                alignItems: "center",
+              }}
+            >
+              <span>{item.name}</span>
+              <div>
+                <button onClick={() => decreaseQty(item.name)}>-</button>
+                <span style={{ margin: "0 8px" }}>{item.quantity}</span>
+                <button onClick={() => increaseQty(item.name)}>+</button>
+              </div>
+            </div>
+          ))}
+
+          <hr style={{ margin: "12px 0" }} />
+
+          <p>Subtotal: ₹{subTotal}</p>
+          <p>Delivery: {delivery === 0 ? "FREE" : `₹${delivery}`}</p>
+          <p style={{ fontWeight: "bold" }}>Total: ₹{total}</p>
+
+          <button
+            onClick={handleCheckout}
+            style={{
+              marginTop: "16px",
+              width: "100%",
+              background: "#16a34a",
+              color: "#fff",
+              padding: "10px",
+              borderRadius: "8px",
+              fontWeight: "bold",
+              border: "none",
+              cursor: "pointer",
+            }}
+          >
+            ✅ Checkout on WhatsApp
+          </button>
+        </div>
+      )}
+    </>
   );
 }
