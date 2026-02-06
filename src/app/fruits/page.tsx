@@ -1,25 +1,29 @@
+"use client";
 import Image from "next/image";
 import TopBanner from "../../components/TopBanner";
+import { useCart } from "../../context/CartContext";
 
 const fruits = [
   {
-    name: "Apple",
-    price: "₹120 / kg",
+    name: "Apple PER KG ",
+    price: 120,
     image: "/fruits/apple.jpg",
   },
   {
     name: "Banana",
-    price: "₹60 / dozen",
+    price: 60,
     image: "/fruits/banana.jpg",
   },
   {
     name: "Orange",
-    price: "₹80 / kg",
+    price: 80,
     image: "/fruits/orange.jpg",
   },
 ];
 
 export default function FruitsPage() {
+  const { addToCart } = useCart();
+
   return (
     <>
       {/* TOP INFO BANNER */}
@@ -53,9 +57,19 @@ export default function FruitsPage() {
                 {fruit.price}
               </p>
 
-              <button className="mt-4 bg-emerald-600 text-white px-5 py-2 rounded-full hover:bg-emerald-700 transition">
+              <button
+                onClick={() =>
+                  addToCart({
+                    name: fruit.name,
+                    price: fruit.price,
+                    image: fruit.image,
+                  })
+                }
+                className="mt-4 bg-emerald-600 text-white px-5 py-2 rounded-full hover:bg-emerald-700 transition"
+              >
                 Add to Cart
               </button>
+
             </div>
           ))}
         </div>
