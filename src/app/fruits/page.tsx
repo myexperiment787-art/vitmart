@@ -9,94 +9,94 @@ export default function FruitsPage() {
 
   const fruits = [
     {
-      name: "Apple PER KG",
+      name: "Apple 500 g",
       price: 120,
       image: "/fruits/apple.jpg",
     },
     {
-      name: "Banana",
-      price: 60,
+      name: "Banana 1Kg ",
+      price: 50 ,
       image: "/fruits/banana.jpg",
     },
     {
-      name: "Orange",
+      name: "Orange 500g ",
       price: 80,
       image: "/fruits/orange.jpg",
     },
-    {
+    /*{
       name: "Pomegranate",
       price: 80,
       image: "/fruits/Pomegranate.jpg",
-    },
+    },*/
     {
-      name: "Strawberry",
-      price: 80,
+      name: "Strawberry 100g",
+      price: 100,
       image: "/fruits/Strawberry.jpg",
     },
 
     {
-      name: "Grape",
+      name: "Grape Green 250g",
       price: 80,
       image: "/fruits/Grape.jpg",
     },
 
-    {
+    /*{
       name: "Mango",
       price: 80,
       image: "/fruits/Mango.jpg",
-    },
+    },*/
 
     {
-      name: "Pineapple",
-      price: 80,
+      name: "Pineapple 1Kg",
+      price: 150 ,
       image: "/fruits/Pineapple.jpg",
     },
 
     {
-      name: "Guava",
+      name: "Guava 1kg",
       price: 80,
       image: "/fruits/Guava.jpg",
     },
 
-    {
+    /*{
       name: "Watermelon",
       price: 80,
       image: "/fruits/Watermelon.jpg",
-    },
+    },*/
 
     {
-      name: "Big Lemon",
-      price: 80,
+      name: "Big Lemon 6 Piece",
+      price: 40,
       image: "/fruits/Big Lemon.jpg",
     },
 
     {
       name: "Big Kiwi",
-      price: 80,
+      price: 150,
       image: "/fruits/Big Kiwi.jpg",
     },
 
     {
       name: "Dragon Fruit",
-      price: 80,
+      price: 150,
       image: "/fruits/Dragon Fruit.jpg",
     },
 
     {
-      name: "Black Grape",
-      price: 80,
+      name: "Black Grape 500g ",
+      price: 140,
       image: "/fruits/Black Grape.jpg",
     },
 
     {
-      name: "Avocado",
-      price: 80,
-      image: "/fruits/Avocado.jpg",
+      name: "Coconut Water",
+      price: 100,
+      image: "/fruits/Coconut.jpg",
     },
 
     {
-      name: "Dates",
-      price: 80,
+      name: "Dates PER Packet ",
+      price: 100,
       image: "/fruits/Dates.jpg",
     },
 

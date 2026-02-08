@@ -1,5 +1,5 @@
 export default function MedicinePage() {
-  const whatsappNumber = "919117865343";
+  const whatsappNumber = "919630741753";
   const message =
     "Hello Vit Mart, I want to order medicine. Please find my prescription attached.";
 
@@ -12,6 +12,10 @@ export default function MedicinePage() {
       <div className="max-w-2xl w-full text-center space-y-6">
 
         {/* ✅ TOP TRUST / LEGAL NOTICE */}
+        <h2 className="text-3xl md:text-4xl font-bold flex items-center justify-center gap-3">
+          GET UPTO 10% OFF
+        </h2>
+        
         <p className="text-sm text-gray-600 font-medium">
           🩺 Verified Medicines | Doctor’s Prescription Mandatory
         </p>

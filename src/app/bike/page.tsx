@@ -24,7 +24,8 @@ export default function BikeRentPage() {
     },
   ];
 
-  const whatsappNumber = "919117865343"; // change if needed
+
+  const whatsappNumber = "919630741753"; // change if needed
 
   return (
     <div className="px-6 py-12 max-w-6xl mx-auto">

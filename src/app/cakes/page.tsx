@@ -3,7 +3,7 @@
 import Image from "next/image";
 import CakeBanner from "../../components/CakeBanner";
 
-const phoneNumber = "919117865343"; // 🔴 replace with your WhatsApp number
+const phoneNumber = "919630741753"; // 🔴 replace with your WhatsApp number
 
 function orderOnWhatsApp(name: string, price: number) {
   const message = `Hello, I want to order:

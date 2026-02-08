@@ -28,7 +28,7 @@ export default function FloatingCart() {
 
   // 📲 WHATSAPP CHECKOUT
   const handleCheckout = () => {
-    const phoneNumber = "919117865343"; // change if needed
+    const phoneNumber = "919630741753"; // change if needed
 
     const itemsText = cart
       .map(
