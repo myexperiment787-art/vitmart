@@ -26,8 +26,8 @@ export default function Footer() {
         {/* CONTACT */}
         <div>
           <h3 className="font-semibold mb-3">Contact Info</h3>
-          <p className="text-gray-400 text-sm">📞 +91 9117865343</p>
-          <p className="text-gray-400 text-sm">✉️ support@vitmart.com</p>
+          <p className="text-gray-400 text-sm">📞 +91 9630741753</p>
+          <p className="text-gray-400 text-sm"></p>
         </div>
       </div>
 
