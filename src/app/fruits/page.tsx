@@ -147,13 +147,13 @@ export default function FruitsPage() {
       <div style={{
         background: 'linear-gradient(180deg, #fff 0%, #f8f9fa 100%)',
         minHeight: '100vh',
-        padding: '48px 24px',
+        padding: '24px 16px',
       }}>
         <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
           {/* Header with gradient text */}
-          <div style={{ textAlign: 'center', marginBottom: '48px' }}>
+          <div style={{ textAlign: 'center', marginBottom: '32px' }}>
             <h1 style={{
-              fontSize: '48px',
+              fontSize: 'clamp(32px, 8vw, 48px)',
               fontWeight: '800',
               background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
               WebkitBackgroundClip: 'text',
@@ -164,9 +164,10 @@ export default function FruitsPage() {
               🍎 Fresh Fruits
             </h1>
             <p style={{
-              fontSize: '18px',
+              fontSize: 'clamp(14px, 4vw, 18px)',
               color: '#6c757d',
               fontWeight: '500',
+              padding: '0 16px',
             }}>
               Handpicked fresh fruits delivered to your doorstep
             </p>
@@ -174,15 +175,15 @@ export default function FruitsPage() {
 
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: '28px',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 350px), 1fr))',
+            gap: '24px',
           }}>
             {fruits.map((fruit) => (
               <div
                 key={fruit.name}
                 style={{
                   backgroundColor: 'white',
-                  borderRadius: '28px',
+                  borderRadius: '24px',
                   boxShadow: '0 8px 30px rgba(0, 0, 0, 0.08)',
                   overflow: 'hidden',
                   transition: 'all 0.3s ease',
@@ -190,7 +191,7 @@ export default function FruitsPage() {
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.boxShadow = '0 12px 40px rgba(0, 0, 0, 0.15)';
-                  e.currentTarget.style.transform = 'translateY(-8px)';
+                  e.currentTarget.style.transform = 'translateY(-4px)';
                   e.currentTarget.style.borderColor = fruit.accentColor;
                 }}
                 onMouseLeave={(e) => {
@@ -203,20 +204,20 @@ export default function FruitsPage() {
                 <div style={{ position: 'relative' }}>
                   <div style={{ 
                     position: 'absolute', 
-                    top: '20px', 
-                    right: '20px', 
+                    top: '16px', 
+                    right: '16px', 
                     zIndex: 10 
                   }}>
                     {fruit.inStock ? (
                       <span style={{
                         background: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)',
                         color: 'white',
-                        fontSize: '11px',
+                        fontSize: '10px',
                         fontWeight: '800',
-                        padding: '8px 16px',
-                        borderRadius: '25px',
+                        padding: '6px 12px',
+                        borderRadius: '20px',
                         textTransform: 'uppercase',
-                        letterSpacing: '1px',
+                        letterSpacing: '0.5px',
                         boxShadow: '0 4px 15px rgba(56, 239, 125, 0.3)',
                       }}>
                         ✓ IN STOCK
@@ -225,12 +226,12 @@ export default function FruitsPage() {
                       <span style={{
                         background: 'linear-gradient(135deg, #ee0979 0%, #ff6a00 100%)',
                         color: 'white',
-                        fontSize: '11px',
+                        fontSize: '10px',
                         fontWeight: '800',
-                        padding: '8px 16px',
-                        borderRadius: '25px',
+                        padding: '6px 12px',
+                        borderRadius: '20px',
                         textTransform: 'uppercase',
-                        letterSpacing: '1px',
+                        letterSpacing: '0.5px',
                         boxShadow: '0 4px 15px rgba(238, 9, 121, 0.3)',
                       }}>
                         OUT OF STOCK
@@ -240,22 +241,24 @@ export default function FruitsPage() {
 
                   {/* Fruit Image with colorful gradient background */}
                   <div style={{
-                    height: '320px',
+                    height: 'clamp(280px, 50vw, 350px)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     background: fruit.bgGradient,
-                    padding: '32px',
+                    padding: '40px 24px',
                     position: 'relative',
                   }}>
                     <Image
                       src={fruit.image}
                       alt={fruit.name}
-                      width={300}
-                      height={300}
+                      width={400}
+                      height={400}
                       style={{
-                        maxWidth: '100%',
-                        maxHeight: '100%',
+                        width: '100%',
+                        height: '100%',
+                        maxWidth: '300px',
+                        maxHeight: '300px',
                         objectFit: 'contain',
                         filter: 'drop-shadow(0 10px 20px rgba(0, 0, 0, 0.15))',
                       }}
@@ -264,14 +267,14 @@ export default function FruitsPage() {
                 </div>
 
                 {/* Card Content */}
-                <div style={{ padding: '24px' }}>
+                <div style={{ padding: '20px' }}>
                   {/* Fruit Name */}
                   <h2 style={{
-                    fontSize: '20px',
+                    fontSize: 'clamp(18px, 5vw, 22px)',
                     fontWeight: '700',
                     color: '#2d3436',
-                    marginBottom: '10px',
-                    minHeight: '50px',
+                    marginBottom: '12px',
+                    minHeight: '48px',
                     display: 'flex',
                     alignItems: 'center',
                   }}>
@@ -282,12 +285,12 @@ export default function FruitsPage() {
                   <div style={{
                     display: 'inline-block',
                     background: `linear-gradient(135deg, ${fruit.accentColor}22 0%, ${fruit.accentColor}44 100%)`,
-                    padding: '8px 16px',
+                    padding: '10px 20px',
                     borderRadius: '12px',
                     marginBottom: '20px',
                   }}>
                     <p style={{
-                      fontSize: '28px',
+                      fontSize: 'clamp(24px, 6vw, 32px)',
                       fontWeight: '800',
                       color: fruit.accentColor,
                       margin: 0,
@@ -300,30 +303,32 @@ export default function FruitsPage() {
                   <div style={{ 
                     display: 'flex', 
                     alignItems: 'center', 
-                    gap: '12px' 
+                    gap: '12px',
+                    flexWrap: 'wrap',
                   }}>
                     {/* Quantity Controls */}
                     <div style={{ 
                       display: 'flex', 
                       alignItems: 'center', 
-                      gap: '10px',
+                      gap: '12px',
                       background: '#f8f9fa',
-                      padding: '6px 12px',
+                      padding: '8px 16px',
                       borderRadius: '50px',
+                      flex: '0 0 auto',
                     }}>
                       <button
                         onClick={() => updateQuantity(fruit.name, -1)}
                         disabled={!fruit.inStock}
                         style={{
-                          width: '38px',
-                          height: '38px',
+                          width: '44px',
+                          height: '44px',
                           borderRadius: '50%',
                           backgroundColor: 'white',
                           border: `2px solid ${fruit.accentColor}33`,
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          fontSize: '20px',
+                          fontSize: '24px',
                           fontWeight: '700',
                           color: fruit.accentColor,
                           cursor: fruit.inStock ? 'pointer' : 'not-allowed',
@@ -349,7 +354,7 @@ export default function FruitsPage() {
                         width: '40px',
                         textAlign: 'center',
                         fontWeight: '800',
-                        fontSize: '20px',
+                        fontSize: '22px',
                         color: '#2d3436',
                       }}>
                         {getQuantity(fruit.name)}
@@ -358,15 +363,15 @@ export default function FruitsPage() {
                         onClick={() => updateQuantity(fruit.name, 1)}
                         disabled={!fruit.inStock}
                         style={{
-                          width: '38px',
-                          height: '38px',
+                          width: '44px',
+                          height: '44px',
                           borderRadius: '50%',
                           backgroundColor: 'white',
                           border: `2px solid ${fruit.accentColor}33`,
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          fontSize: '20px',
+                          fontSize: '24px',
                           fontWeight: '700',
                           color: fruit.accentColor,
                           cursor: fruit.inStock ? 'pointer' : 'not-allowed',
@@ -396,12 +401,13 @@ export default function FruitsPage() {
                       disabled={!fruit.inStock || getQuantity(fruit.name) === 0}
                       style={{
                         flex: 1,
+                        minWidth: '180px',
                         background: fruit.inStock && getQuantity(fruit.name) > 0 
                           ? `linear-gradient(135deg, ${fruit.accentColor} 0%, ${fruit.accentColor}dd 100%)`
                           : '#d1d5db',
                         color: 'white',
                         fontWeight: '800',
-                        padding: '14px 20px',
+                        padding: '16px 24px',
                         borderRadius: '50px',
                         border: 'none',
                         fontSize: '15px',
