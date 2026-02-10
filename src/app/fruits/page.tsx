@@ -60,7 +60,7 @@ export default function FruitsPage() {
     },
     {
       name: "Guava 1kg",
-      price: 80,
+      price: 100,
       image: "/fruits/Guava.jpg",
       inStock: true,
       bgGradient: "linear-gradient(135deg, #e8ffe8 0%, #b3ffb3 100%)",
