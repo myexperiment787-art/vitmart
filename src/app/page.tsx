@@ -3,7 +3,7 @@ import Hero from "../components/Hero";
 import CategorySection from "../components/CategorySection";
 import ProductCard from "../components/ProductCard";
 import WhyChoose from "../components/WhyChoose";
-import Statssection from "../components/Statssection";
+
 
 
 export default function Home() {
@@ -11,7 +11,7 @@ export default function Home() {
     <>
       <Navbar />
       <Hero />
-      <Statssection />
+      
       {/* CATEGORY SECTION */}
       <CategorySection />
 
