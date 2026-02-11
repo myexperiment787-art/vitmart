@@ -1,3 +1,5 @@
+"use client";
+
 export default function MedicinePage() {
   const whatsappNumber = "919630741753";
   const message =
@@ -200,6 +202,10 @@ export default function MedicinePage() {
               target="_blank"
               rel="noopener noreferrer"
               className="whatsapp-button"
+              onClick={() => {
+                // Trigger stats counter update
+                window.dispatchEvent(new Event('cartUpdated'));
+              }}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
