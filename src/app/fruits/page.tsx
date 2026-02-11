@@ -139,7 +139,10 @@ export default function FruitsPage() {
       setQuantities((prev) => ({ ...prev, [fruit.name]: 0 }));
       
       // Trigger stats counter update
+      console.log('🚀 Dispatching cartUpdated event from fruits page');
       window.dispatchEvent(new Event('cartUpdated'));
+    } else {
+      console.log('⚠️ Quantity is 0, cannot add to cart');
     }
   };
 
@@ -177,7 +180,7 @@ export default function FruitsPage() {
 
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
             gap: '28px',
           }}>
             {fruits.map((fruit) => (

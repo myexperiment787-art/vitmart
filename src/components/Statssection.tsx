@@ -3,63 +3,18 @@
 import { useState, useEffect } from "react";
 
 export default function StatsSection() {
-  // We'll track cart additions differently without relying on CartContext
-  // Since CartContext structure is unknown
-  
-  // State for all counters
   const [ordersDelivered, setOrdersDelivered] = useState(0);
   const [happyCustomers, setHappyCustomers] = useState(0);
   const [productsAvailable, setProductsAvailable] = useState(0);
   const [deliveryRate, setDeliveryRate] = useState(0);
 
-  // Initial base numbers
+  // Base numbers
   const baseOrders = 5000;
   const baseCustomers = 2500;
   const baseProducts = 150;
   const baseDeliveryRate = 99;
 
-  // Load real-time data from localStorage on mount
-  useEffect(() => {
-    // Get stored data
-    const storedOrders = localStorage.getItem('vitmart_total_orders');
-    const storedCustomers = localStorage.getItem('vitmart_total_customers');
-    
-    const currentOrders = storedOrders ? parseInt(storedOrders) : baseOrders;
-    const currentCustomers = storedCustomers ? parseInt(storedCustomers) : baseCustomers;
-
-    // Animate counters on load
-    animateCounter(setOrdersDelivered, currentOrders);
-    animateCounter(setHappyCustomers, currentCustomers);
-    animateCounter(setProductsAvailable, baseProducts);
-    animateCounter(setDeliveryRate, baseDeliveryRate);
-
-    // Listen for custom event when items are added to cart
-    const handleCartUpdate = () => {
-      const storedOrders = localStorage.getItem('vitmart_total_orders');
-      const currentOrders = storedOrders ? parseInt(storedOrders) : baseOrders;
-      const newOrderCount = currentOrders + 1;
-      
-      localStorage.setItem('vitmart_total_orders', newOrderCount.toString());
-      setOrdersDelivered(newOrderCount);
-      
-      // Update customers occasionally
-      if (Math.random() > 0.5) {
-        const storedCustomers = localStorage.getItem('vitmart_total_customers');
-        const currentCustomers = storedCustomers ? parseInt(storedCustomers) : baseCustomers;
-        const newCustomerCount = currentCustomers + 1;
-        localStorage.setItem('vitmart_total_customers', newCustomerCount.toString());
-        setHappyCustomers(newCustomerCount);
-      }
-    };
-
-    window.addEventListener('cartUpdated', handleCartUpdate);
-    
-    return () => {
-      window.removeEventListener('cartUpdated', handleCartUpdate);
-    };
-  }, []);
-
-  // Animated counter function
+  // Animated counter
   const animateCounter = (setter: (value: number) => void, target: number) => {
     const duration = 2000;
     const steps = 50;
@@ -77,6 +32,57 @@ export default function StatsSection() {
       }
     }, interval);
   };
+
+  useEffect(() => {
+    // Load from localStorage
+    const storedOrders = localStorage.getItem('vitmart_total_orders');
+    const storedCustomers = localStorage.getItem('vitmart_total_customers');
+    
+    const currentOrders = storedOrders ? parseInt(storedOrders) : baseOrders;
+    const currentCustomers = storedCustomers ? parseInt(storedCustomers) : baseCustomers;
+
+    console.log('📊 Stats loaded:', { currentOrders, currentCustomers });
+
+    // Animate counters
+    animateCounter(setOrdersDelivered, currentOrders);
+    animateCounter(setHappyCustomers, currentCustomers);
+    animateCounter(setProductsAvailable, baseProducts);
+    animateCounter(setDeliveryRate, baseDeliveryRate);
+
+    // Event listener for cart updates
+    const handleCartUpdate = (event: Event) => {
+      console.log('🔔 Cart updated event received!');
+      
+      const storedOrders = localStorage.getItem('vitmart_total_orders');
+      const currentOrders = storedOrders ? parseInt(storedOrders) : baseOrders;
+      const newOrderCount = currentOrders + 1;
+      
+      console.log('📦 Orders:', currentOrders, '→', newOrderCount);
+      
+      localStorage.setItem('vitmart_total_orders', newOrderCount.toString());
+      setOrdersDelivered(newOrderCount);
+      
+      // Update customers (50% chance)
+      if (Math.random() > 0.5) {
+        const storedCustomers = localStorage.getItem('vitmart_total_customers');
+        const currentCustomers = storedCustomers ? parseInt(storedCustomers) : baseCustomers;
+        const newCustomerCount = currentCustomers + 1;
+        
+        console.log('😊 Customers:', currentCustomers, '→', newCustomerCount);
+        
+        localStorage.setItem('vitmart_total_customers', newCustomerCount.toString());
+        setHappyCustomers(newCustomerCount);
+      }
+    };
+
+    window.addEventListener('cartUpdated', handleCartUpdate);
+    console.log('✅ Event listener added for cartUpdated');
+    
+    return () => {
+      window.removeEventListener('cartUpdated', handleCartUpdate);
+      console.log('❌ Event listener removed');
+    };
+  }, []);
 
   const stats = [
     {
@@ -170,7 +176,7 @@ export default function StatsSection() {
           </p>
         </div>
 
-        {/* Stats Grid */}
+        {/* Stats Grid - Responsive */}
         <div style={{
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
