@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 export default function Footer() {
   return (
     <footer style={{
@@ -111,16 +113,26 @@ export default function Footer() {
                 padding: 0,
                 margin: 0,
               }}>
-                {['Home', 'Products', 'Categories', 'Cart'].map((link, index) => (
-                  <li key={index} className="footer-link" style={{
+                {[
+                  { name: 'Home', href: '/' },
+                  { name: 'Fruits', href: '/fruits' },
+                  { name: 'Cakes', href: '/cakes' },
+                  { name: 'Medicine', href: '/medicine' },
+                  { name: 'Bike Rental', href: '/bike' },
+                ].map((link, index) => (
+                  <li key={index} style={{
                     padding: '8px 0',
-                    color: 'rgba(255, 255, 255, 0.9)',
-                    fontSize: '15px',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
                   }}>
-                    → {link}
+                    <Link href={link.href} className="footer-link" style={{
+                      color: 'rgba(255, 255, 255, 0.9)',
+                      fontSize: '15px',
+                      fontWeight: '600',
+                      textDecoration: 'none',
+                      transition: 'all 0.2s',
+                      display: 'block',
+                    }}>
+                      → {link.name}
+                    </Link>
                   </li>
                 ))}
               </ul>
