@@ -11,6 +11,14 @@ export default function FruitsPage() {
 
   const fruits = [
     {
+      name: "sugarcane juice PER GLASS",
+      price: 35,
+      image: "/fruits/sugarcanejuice.jpg",
+      inStock: true,
+      bgGradient: "linear-gradient(135deg, #ffe0e6 0%, #ff99ac 100%)",
+      accentColor: "#e74c3c",
+    },
+    {
       name: "Apple 500 g",
       price: 120,
       image: "/fruits/apple.jpg",
