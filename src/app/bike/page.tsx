@@ -30,7 +30,7 @@ export default function BikeRentPage() {
     },
     {
       name: "Pulsar",
-      price: 400,
+      price: 450,
       image: "/bikes/pulsar.jpg",
       gradient: "linear-gradient(135deg, #fa709a 0%, #fee140 100%)",
       color: "#fa709a",
