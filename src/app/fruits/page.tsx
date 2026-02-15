@@ -84,7 +84,7 @@ export default function FruitsPage() {
     },
     {
       name: "Tomatoes 500 Gm",
-      price: 500,
+      price: 50,
       image: "/fruits/Tomatoes.jpg",
       inStock: false,
       bgGradient: "linear-gradient(135deg, #ffe6f0 0%, #ffb3d9 100%)",
