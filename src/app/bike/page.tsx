@@ -9,7 +9,7 @@ export default function BikeRentPage() {
   const bikes = [
     {
       name: "Scooty",
-      price: 300,
+      price: 350,
       image: "/bikes/scooty.jpg",
       gradient: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
       color: "#f093fb",
@@ -22,15 +22,15 @@ export default function BikeRentPage() {
       color: "#667eea",
     },
     {
-      name: "Splendor",
+      name: "Platina",
       price: 350,
-      image: "/bikes/splendor.jpg",
+      image: "/bikes/platina.jpg",
       gradient: "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)",
       color: "#4facfe",
     },
     {
       name: "Pulsar",
-      price: 450,
+      price: 500,
       image: "/bikes/pulsar.jpg",
       gradient: "linear-gradient(135deg, #fa709a 0%, #fee140 100%)",
       color: "#fa709a",
