@@ -8,6 +8,13 @@ export default function BikeRentPage() {
 
   const bikes = [
     {
+      name: "PULSER NS 200",
+      price: 1200,
+      image: "/bikes/PULSERNS200.jpg",
+      gradient: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
+      color: "#f093fb",
+    },
+    {
       name: "Scooty",
       price: 350,
       image: "/bikes/scooty.jpg",
