@@ -52,7 +52,7 @@ export default function FruitsPage() {
     },
     {
       name: "Strawberry 100g",
-      price: 130,
+      price: 100,
       image: "/fruits/Strawberry.jpg",
       inStock: true,
       bgGradient: "linear-gradient(135deg, #ffe0e6 0%, #ff99ac 100%)",
@@ -78,7 +78,7 @@ export default function FruitsPage() {
       name: "Guava 1kg",
       price: 90,
       image: "/fruits/Guava.jpg",
-      inStock: true,
+      inStock: false,
       bgGradient: "linear-gradient(135deg, #e8ffe8 0%, #b3ffb3 100%)",
       accentColor: "#2ecc71",
     },
