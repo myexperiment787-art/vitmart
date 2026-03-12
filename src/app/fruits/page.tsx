@@ -28,7 +28,7 @@ export default function FruitsPage() {
     },
     {
       name: "Apple 500 g",
-      price: 130,
+      price: 160,
       image: "/fruits/apple.jpg",
       inStock: true,
       bgGradient: "linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%)",
@@ -50,11 +50,20 @@ export default function FruitsPage() {
       bgGradient: "linear-gradient(135deg, #ffe8cc 0%, #ffb366 100%)",
       accentColor: "#e67e22",
     },
+
+    {
+      name: "Watermelon 2kg ",
+      price: 150,
+      image: "/fruits/Watermelon.jpg",
+      inStock: true,
+      bgGradient: "linear-gradient(135deg, #ffe6cc 0%, #ffb366 100%)",
+      accentColor: "#d35400",
+    },
     {
       name: "Strawberry 100g",
       price: 100,
       image: "/fruits/Strawberry.jpg",
-      inStock: true,
+      inStock: false,
       bgGradient: "linear-gradient(135deg, #ffe0e6 0%, #ff99ac 100%)",
       accentColor: "#e74c3c",
     },
@@ -83,7 +92,7 @@ export default function FruitsPage() {
       accentColor: "#2ecc71",
     },
     {
-      name: "Big Lemon 4 Piece",
+      name: "Big Lemon 3 Piece",
       price: 30,
       image: "/fruits/Big Lemon.jpg",
       inStock: true,
@@ -126,7 +135,7 @@ export default function FruitsPage() {
       name: "Black Grape 500g",
       price: 140,
       image: "/fruits/Black Grape.jpg",
-      inStock: true,
+      inStock: false,
       bgGradient: "linear-gradient(135deg, #e6ccff 0%, #b366ff 100%)",
       accentColor: "#9b59b6",
     },
@@ -146,6 +155,7 @@ export default function FruitsPage() {
       bgGradient: "linear-gradient(135deg, #ffe6cc 0%, #ffb366 100%)",
       accentColor: "#d35400",
     },
+    
   ];
 
   const getQuantity = (fruitName: string) => quantities[fruitName] || 0;
