@@ -7,6 +7,7 @@ const categories = [
   { title: "Fresh Cakes & Desserts", desc: "Delicious cakes for every celebration.", image: "/categories/cakes.jpg", href: "/cakes", gradient: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)", color: "#f093fb", emoji: "🎂" },
   { title: "Street Food & Snacks", desc: "Pani Puri, Momo, Chaat & more delivered fresh!", image: "/categories/food.jpg", href: "/food", gradient: "linear-gradient(135deg, #ff9a56 0%, #ff6b35 100%)", color: "#ff9a56", emoji: "🍽️" },
   { title: "Bike Rentals", desc: "Affordable bike rentals for daily needs.", image: "/categories/bike.jpg", href: "/bike", gradient: "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)", color: "#4facfe", emoji: "🏍️" },
+  { title: "Car Service", desc: "24-hour car rental service for local and outstation travel.", image: "/cars/fronx.jpg", href: "/car", gradient: "linear-gradient(135deg, #ff9a56 0%, #ff6b35 100%)", color: "#ff9a56", emoji: "🚗" },
   { title: "Medicine Order", desc: "Send prescription via WhatsApp.", image: "/categories/medicine.jpg", href: "/medicine", gradient: "linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)", color: "#43e97b", emoji: "💊" },
 ];
 

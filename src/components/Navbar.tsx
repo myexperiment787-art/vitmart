@@ -6,11 +6,13 @@ export default function Navbar() {
   const [hoveredButton, setHoveredButton] = useState<string | null>(null);
 
   const navButtons = [
-    { label: "Cakes", href: "/cakes", emoji: "🎂", gradient: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)", color: "#f093fb" },
+    
+    { label: "Car Service", href: "/car", emoji: "🚗", gradient: "linear-gradient(135deg, #ff9a56 0%, #ff6b35 100%)", color: "#ff9a56" },
     { label: "Food", href: "/food", emoji: "🍽️", gradient: "linear-gradient(135deg, #ff9a56 0%, #ff6b35 100%)", color: "#ff9a56" },
     { label: "Fruits", href: "/fruits", emoji: "🍎", gradient: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", color: "#667eea" },
     { label: "Medicine", href: "/medicine", emoji: "💊", gradient: "linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)", color: "#43e97b" },
     { label: "Bike Rental", href: "/bike", emoji: "🏍️", gradient: "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)", color: "#4facfe" },
+    { label: "Cakes", href: "/cakes", emoji: "🎂", gradient: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)", color: "#f093fb" },
   ];
 
   return (
