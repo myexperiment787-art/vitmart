@@ -2,18 +2,33 @@ import { NextResponse } from "next/server";
 
 export async function GET() {
   try {
-    const sheetUrl = process.env.GOOGLE_SHEET_URL; // your apps script URL
-    
+    const sheetUrl = process.env.GOOGLE_SHEET_URL;
+
     if (!sheetUrl) {
       return NextResponse.json({ status: "OPEN" });
     }
 
-    const res = await fetch(sheetUrl, { cache: "no-store" });
-    const data = await res.json();
+    // Google Apps Script requires following redirects
+    const res = await fetch(sheetUrl, {
+      method: "GET",
+      redirect: "follow",
+      headers: { "Accept": "application/json" },
+      cache: "no-store",
+    });
 
-    return NextResponse.json({ status: data.status || "OPEN" });
+    const text = await res.text();
+    console.log("Shop status raw response:", text);
+
+    try {
+      const data = JSON.parse(text);
+      return NextResponse.json({ status: data.status || "OPEN" });
+    } catch {
+      console.error("JSON parse failed:", text);
+      return NextResponse.json({ status: "OPEN" });
+    }
+
   } catch (error) {
     console.error("Shop status error:", error);
-    return NextResponse.json({ status: "OPEN" }); // default to open if error
+    return NextResponse.json({ status: "OPEN" });
   }
 }
