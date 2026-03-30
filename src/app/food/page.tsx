@@ -77,7 +77,7 @@ export default function FoodPage() {
     // ⏰ Only allow orders between 10 AM and 7 PM
     const now = new Date();
     const hours = now.getHours();
-    if (hours < 5 || hours >= 19) {
+    if (hours < 10 || hours >= 19) {
       alert("⏰ Sorry! Orders are only accepted between 10:00 AM - 7:00 PM.\n\nPlease come back during order hours!");
       return;
     }
@@ -353,7 +353,7 @@ export default function FoodPage() {
                 {!showForm ? (
                   (() => {
                     const h = new Date().getHours();
-                    const isTimeOk = h >= 5 && h < 19;
+                    const isTimeOk = h >= 10 && h < 19;
                     const isOpen = shopOpen !== false && isTimeOk;
                     const btnMsg = shopOpen === false
                       ? "🔴 Shop is Closed"
