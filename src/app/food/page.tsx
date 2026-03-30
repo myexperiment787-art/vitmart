@@ -77,7 +77,7 @@ export default function FoodPage() {
     // ⏰ Only allow orders between 10 AM and 7 PM
     const now = new Date();
     const hours = now.getHours();
-    if (hours < 10 || hours >= 19) {
+    if (hours < 10 || hours >= 20) {
       alert("⏰ Sorry! Orders are only accepted between 10:00 AM - 7:00 PM.\n\nPlease come back during order hours!");
       return;
     }
@@ -175,7 +175,7 @@ export default function FoodPage() {
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "12px", position: "relative", zIndex: 1 }}>
 
   <div style={{ display: "inline-block", background: "rgba(255,255,255,0.2)", padding: "10px 24px", borderRadius: "50px", backdropFilter: "blur(10px)", border: "1px solid rgba(255,255,255,0.3)" }}>
-    <span style={{ color: "white", fontWeight: "700" }}>Order Timing 10:00 AM - 7:00 PM</span>
+    <span style={{ color: "white", fontWeight: "700" }}>Order Timing 10:00 AM - 8:00 PM</span>
   </div>
 
   <div style={{ display: "inline-block", background: "rgba(255,255,255,0.2)", padding: "10px 24px", borderRadius: "50px", backdropFilter: "blur(10px)", border: "1px solid rgba(255,255,255,0.3)" }}>
@@ -353,12 +353,12 @@ export default function FoodPage() {
                 {!showForm ? (
                   (() => {
                     const h = new Date().getHours();
-                    const isTimeOk = h >= 10 && h < 19;
+                    const isTimeOk = h >= 10 && h < 20;
                     const isOpen = shopOpen !== false && isTimeOk;
                     const btnMsg = shopOpen === false
                       ? "🔴 Shop is Closed"
                       : !isTimeOk
-                      ? "⏰ Orders Closed (10AM - 7PM only)"
+                      ? "⏰ Orders Closed (10AM - 8PM only)"
                       : "💳 Pay with Razorpay";
                     return (
                       <button
