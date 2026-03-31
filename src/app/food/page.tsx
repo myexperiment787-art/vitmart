@@ -7,7 +7,7 @@ declare global { interface Window { Razorpay: any; } }
 
 // Items with single price
 const singleItems = [
-  { name: "Pani Puri (6 pcs)", price: 20, image: "/food/panipuri.jpg", desc: "Crispy puris with spicy tangy water, potatoes & chickpeas", tag: "Bestseller", tagColor: "#f5576c", available: false },
+  { name: "Pani Puri (6 pcs)", price: 20, image: "/food/panipuri.jpg", desc: "Crispy puris with spicy tangy water, potatoes & chickpeas", tag: "Bestseller", tagColor: "#f5576c", available: true },
   { name: "Spring Roll", price: 60, image: "/food/springroll.jpg", desc: "Crispy rolls stuffed with veggies & spices", tag: null, tagColor: "", available: true },
 ];
 
@@ -15,11 +15,11 @@ const singleItems = [
 const halfFullItems = [
   { name: "Veg Momo", halfPrice: 50, fullPrice: 80, halfDesc: "6 pcs", fullDesc: "12 pcs", image: "/food/vegmomo.jpg", desc: "Steamed dumplings stuffed with fresh vegetables & spices", tag: "Popular", tagColor: "#f5576c", available: true },
   { name: "Fried Momo", halfPrice: 50, fullPrice: 80, halfDesc: "6 pcs", fullDesc: "12 pcs", image: "/food/friedmomo.jpg", desc: "Crispy fried dumplings served with spicy chutney", tag: "Popular", tagColor: "#f5576c", available: true },
-  { name: "Paneer Momo", halfPrice: 60, fullPrice: 90, halfDesc: "6 pcs", fullDesc: "12 pcs", image: "/food/pannermomo.jpg", desc: "Juicy momos stuffed with spiced paneer filling", tag: "Popular", tagColor: "#f5576c", available: false },
+  { name: "Paneer Momo", halfPrice: 60, fullPrice: 90, halfDesc: "6 pcs", fullDesc: "12 pcs", image: "/food/pannermomo.jpg", desc: "Juicy momos stuffed with spiced paneer filling", tag: "Popular", tagColor: "#f5576c", available: true },
   { name: "Chilli Potato", halfPrice: 50, fullPrice: 80, halfDesc: "Half", fullDesc: "Full", image: "/food/chillipotato.jpg", desc: "Crispy potatoes tossed in spicy chilli sauce", tag: "Spicy 🌶️", tagColor: "#ff6b35", available: true },
   { name: "French Fries", halfPrice: 30, fullPrice: 50, halfDesc: "Half", fullDesc: "Full", image: "/food/frenchfries.jpg", desc: "Golden crispy fries served with ketchup", tag: "Bestseller", tagColor: "#43e97b", available: true },
   { name: "Chowmein", halfPrice: 50, fullPrice: 70, halfDesc: "Half", fullDesc: "Full", image: "/food/chowmein.jpg", desc: "Stir fried noodles with veggies & sauces", tag: null, tagColor: "", available: true },
-  { name: "Manchurian", halfPrice: 50, fullPrice: 70, halfDesc: "6 pcs", fullDesc: "12 pcs", image: "/food/manchurian.jpg", desc: "Crispy veg balls in spicy manchurian sauce", tag: "Popular", tagColor: "#f5576c", available: false },
+  { name: "Manchurian", halfPrice: 50, fullPrice: 70, halfDesc: "6 pcs", fullDesc: "12 pcs", image: "/food/manchurian.jpg", desc: "Crispy veg balls in spicy manchurian sauce", tag: "Popular", tagColor: "#f5576c", available: true },
 ];
 
 export default function FoodPage() {
@@ -31,6 +31,12 @@ export default function FoodPage() {
   const [showForm, setShowForm] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState<any>(null);
   const [shopOpen, setShopOpen] = useState<boolean | null>(null);
+  const [outOfStockItems, setOutOfStockItems] = useState<string[]>([]);
+
+  // Check if an item is available
+  const isItemAvailable = (itemName: string) => {
+    return !outOfStockItems.includes(itemName);
+  };
 
   useEffect(() => {
     const script = document.createElement("script");
@@ -56,7 +62,30 @@ export default function FoodPage() {
     return () => clearInterval(interval);
   }, []);
 
+  // ✅ Check stock/out-of-stock items from our API route
+  useEffect(() => {
+    const checkStockStatus = async () => {
+      try {
+        const res = await fetch("/api/stock-status", { cache: "no-store" });
+        const data = await res.json();
+        const outOfStock = data.outOfStockItems || [];
+        console.log("Out of stock items:", outOfStock);
+        setOutOfStockItems(outOfStock);
+      } catch (error) {
+        console.error("Stock status fetch error:", error);
+        setOutOfStockItems([]);
+      }
+    };
+    checkStockStatus();
+    const interval = setInterval(checkStockStatus, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
   const handleAdd = (name: string, price: number, image: string) => {
+    if (!isItemAvailable(name)) {
+      alert(`❌ ${name} is currently out of stock!`);
+      return;
+    }
     addToCart({ name, price, image });
     setAdded(name);
     setTimeout(() => setAdded(null), 1200);
@@ -74,11 +103,11 @@ export default function FoodPage() {
       return;
     }
 
-    // ⏰ Only allow orders between 10 AM and 7 PM
+    // ⏰ Only allow orders between 10 AM and 6 PM
     const now = new Date();
     const hours = now.getHours();
-    if (hours < 10 || hours >= 20) {
-      alert("⏰ Sorry! Orders are only accepted between 10:00 AM - 7:00 PM.\n\nPlease come back during order hours!");
+    if (hours < 10 || hours >= 24) {
+      alert("⏰ Sorry! Orders are only accepted between 10:00 AM - 6:00 PM.\n\nPlease come back during order hours!");
       return;
     }
 
@@ -167,6 +196,18 @@ export default function FoodPage() {
           </div>
         </div>
       )}
+
+      {/* 📦 OUT OF STOCK BANNER */}
+      {outOfStockItems.length > 0 && (
+        <div style={{ background: "linear-gradient(135deg, #f97316, #ea580c)", padding: "16px 24px", textAlign: "center", position: "relative", zIndex: 99 }}>
+          <div style={{ maxWidth: "1000px", margin: "0 auto" }}>
+            <p style={{ color: "white", fontSize: "16px", fontWeight: "900", margin: "0 0 8px" }}>📦 Out of Stock Today:</p>
+            <p style={{ color: "rgba(255,255,255,0.95)", fontSize: "14px", fontWeight: "600", margin: 0 }}>
+              {outOfStockItems.join(", ")}
+            </p>
+          </div>
+        </div>
+      )}
       <section style={{ background: "linear-gradient(135deg, #ff9a56 0%, #ff6b35 50%, #ffeaa7 100%)", padding: "60px 24px", textAlign: "center", position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", width: "400px", height: "400px", borderRadius: "50%", background: "rgba(255,255,255,0.1)", top: "-150px", right: "-100px", filter: "blur(60px)" }} />
         <h1 style={{ fontSize: "52px", fontWeight: "900", color: "white", textShadow: "0 4px 20px rgba(0,0,0,0.2)", marginBottom: "12px", position: "relative", zIndex: 1 }}>🍽️ Street Food & Snacks</h1>
@@ -175,7 +216,7 @@ export default function FoodPage() {
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "12px", position: "relative", zIndex: 1 }}>
 
   <div style={{ display: "inline-block", background: "rgba(255,255,255,0.2)", padding: "10px 24px", borderRadius: "50px", backdropFilter: "blur(10px)", border: "1px solid rgba(255,255,255,0.3)" }}>
-    <span style={{ color: "white", fontWeight: "700" }}>Order Timing 10:00 AM - 8:00 PM</span>
+    <span style={{ color: "white", fontWeight: "700" }}>Order Timing 10:00 AM - 6:00 PM</span>
   </div>
 
   <div style={{ display: "inline-block", background: "rgba(255,255,255,0.2)", padding: "10px 24px", borderRadius: "50px", backdropFilter: "blur(10px)", border: "1px solid rgba(255,255,255,0.3)" }}>
@@ -198,17 +239,19 @@ export default function FoodPage() {
           {/* ── Half / Full Items ── */}
           <h2 style={{ fontSize: "22px", fontWeight: "900", color: "#2d3436", marginBottom: "20px" }}>🍜 Half & Full Available</h2>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "24px", marginBottom: "40px" }}>
-            {halfFullItems.map((item) => (
+            {halfFullItems.map((item) => {
+              const available = isItemAvailable(item.name);
+              return (
               <div key={item.name}
-                style={{ background: "white", borderRadius: "20px", overflow: "hidden", boxShadow: "0 8px 24px rgba(0,0,0,0.08)", opacity: item.available ? 1 : 0.6, transition: "transform 0.3s ease, box-shadow 0.3s ease" }}
-                onMouseEnter={(e) => { if (item.available) { e.currentTarget.style.transform = "translateY(-6px)"; e.currentTarget.style.boxShadow = "0 16px 40px rgba(255,154,86,0.25)"; } }}
+                style={{ background: "white", borderRadius: "20px", overflow: "hidden", boxShadow: "0 8px 24px rgba(0,0,0,0.08)", opacity: available ? 1 : 0.6, transition: "transform 0.3s ease, box-shadow 0.3s ease" }}
+                onMouseEnter={(e) => { if (available) { e.currentTarget.style.transform = "translateY(-6px)"; e.currentTarget.style.boxShadow = "0 16px 40px rgba(255,154,86,0.25)"; } }}
                 onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 8px 24px rgba(0,0,0,0.08)"; }}>
 
                 {/* Image */}
                 <div style={{ height: "160px", position: "relative", overflow: "hidden", background: "linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%)" }}>
                   <img src={item.image} alt={item.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                   {item.tag && <span style={{ position: "absolute", top: "10px", left: "10px", background: item.tagColor, color: "white", padding: "3px 10px", borderRadius: "20px", fontSize: "11px", fontWeight: "700" }}>{item.tag}</span>}
-                  {!item.available && <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center" }}><span style={{ background: "#ef4444", color: "white", padding: "8px 20px", borderRadius: "50px", fontSize: "14px", fontWeight: "800" }}>❌ Not Available</span></div>}
+                  {!available && <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center" }}><span style={{ background: "#ef4444", color: "white", padding: "8px 20px", borderRadius: "50px", fontSize: "14px", fontWeight: "800" }}>❌ Not Available</span></div>}
                 </div>
 
                 <div style={{ padding: "16px" }}>
@@ -216,7 +259,7 @@ export default function FoodPage() {
                   <p style={{ fontSize: "12px", color: "#636e72", lineHeight: "1.5", marginBottom: "14px" }}>{item.desc}</p>
 
                   {/* Half / Full buttons */}
-                  {item.available ? (
+                  {available ? (
                     <div style={{ display: "flex", gap: "10px" }}>
                       {/* HALF */}
                       <div style={{ flex: 1, background: "#fff8f0", borderRadius: "12px", padding: "10px", textAlign: "center", border: "2px solid #ffd4a8" }}>
@@ -263,7 +306,8 @@ export default function FoodPage() {
                   )}
                 </div>
               </div>
-            ))}
+            );
+            })}
           </div>
 
           {/* ── Single Price Items ── */}
@@ -274,20 +318,20 @@ export default function FoodPage() {
               const justAdded = added === item.name;
               return (
                 <div key={item.name}
-                  style={{ background: "white", borderRadius: "20px", overflow: "hidden", boxShadow: "0 8px 24px rgba(0,0,0,0.08)", opacity: item.available ? 1 : 0.6, transition: "transform 0.3s ease, box-shadow 0.3s ease" }}
-                  onMouseEnter={(e) => { if (item.available) { e.currentTarget.style.transform = "translateY(-6px)"; e.currentTarget.style.boxShadow = "0 16px 40px rgba(255,154,86,0.25)"; } }}
+                  style={{ background: "white", borderRadius: "20px", overflow: "hidden", boxShadow: "0 8px 24px rgba(0,0,0,0.08)", opacity: isItemAvailable(item.name) ? 1 : 0.6, transition: "transform 0.3s ease, box-shadow 0.3s ease" }}
+                  onMouseEnter={(e) => { if (isItemAvailable(item.name)) { e.currentTarget.style.transform = "translateY(-6px)"; e.currentTarget.style.boxShadow = "0 16px 40px rgba(255,154,86,0.25)"; } }}
                   onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 8px 24px rgba(0,0,0,0.08)"; }}>
                   <div style={{ height: "160px", position: "relative", overflow: "hidden", background: "linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%)" }}>
                     <img src={item.image} alt={item.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                     {item.tag && <span style={{ position: "absolute", top: "10px", left: "10px", background: item.tagColor, color: "white", padding: "3px 10px", borderRadius: "20px", fontSize: "11px", fontWeight: "700" }}>{item.tag}</span>}
-                    {!item.available && <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center" }}><span style={{ background: "#ef4444", color: "white", padding: "8px 20px", borderRadius: "50px", fontSize: "14px", fontWeight: "800" }}>❌ Not Available</span></div>}
+                    {!isItemAvailable(item.name) && <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center" }}><span style={{ background: "#ef4444", color: "white", padding: "8px 20px", borderRadius: "50px", fontSize: "14px", fontWeight: "800" }}>❌ Not Available</span></div>}
                   </div>
                   <div style={{ padding: "16px" }}>
                     <h3 style={{ fontSize: "16px", fontWeight: "800", color: "#2d3436", marginBottom: "4px" }}>{item.name}</h3>
                     <p style={{ fontSize: "12px", color: "#636e72", lineHeight: "1.5", marginBottom: "12px" }}>{item.desc}</p>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                       <span style={{ fontSize: "20px", fontWeight: "900", color: "#ff6b35" }}>₹{item.price}</span>
-                      {!item.available ? (
+                      {!isItemAvailable(item.name) ? (
                         <span style={{ background: "#ef4444", color: "white", padding: "6px 14px", borderRadius: "50px", fontSize: "12px", fontWeight: "700" }}>❌ Not Available</span>
                       ) : qty > 0 ? (
                         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -353,16 +397,16 @@ export default function FoodPage() {
                 {!showForm ? (
                   (() => {
                     const h = new Date().getHours();
-                    const isTimeOk = h >= 10 && h < 20;
+                    const isTimeOk = h >= 10 && h < 24;
                     const isOpen = shopOpen !== false && isTimeOk;
                     const btnMsg = shopOpen === false
                       ? "🔴 Shop is Closed"
                       : !isTimeOk
-                      ? "⏰ Orders Closed (10AM - 8PM only)"
+                      ? "⏰ Orders Closed (10AM - 6PM only)"
                       : "💳 Pay with Razorpay";
                     return (
                       <button
-                        onClick={() => isOpen ? setShowForm(true) : alert(shopOpen === false ? "🔴 Shop is currently closed!" : "⏰ Orders accepted only between 10:00 AM - 7:00 PM!")}
+                        onClick={() => isOpen ? setShowForm(true) : alert(shopOpen === false ? "🔴 Shop is currently closed!" : "⏰ Orders accepted only between 10:00 AM - 6:00 PM!")}
                         style={{ marginTop: "16px", width: "100%", background: isOpen ? "linear-gradient(135deg, #ff9a56 0%, #ff6b35 100%)" : shopOpen === false ? "#ef4444" : "#b2bec3", color: "white", border: "none", borderRadius: "50px", padding: "14px", fontWeight: "800", fontSize: "16px", cursor: isOpen ? "pointer" : "not-allowed", boxShadow: isOpen ? "0 6px 20px rgba(255,107,53,0.35)" : "none" }}>
                         {btnMsg}
                       </button>
