@@ -106,8 +106,8 @@ export default function FoodPage() {
     // ⏰ Only allow orders between 10 AM and 6 PM
     const now = new Date();
     const hours = now.getHours();
-    if (hours < 10 || hours >= 18) {
-      alert("⏰ Sorry! Orders are only accepted between 10:00 AM - 6:00 PM.\n\nPlease come back during order hours!");
+    if (hours < 12 || hours >= 18) {
+      alert("⏰ Sorry! Orders are only accepted between 12:00 PM - 6:00 PM.\n\nPlease come back during order hours!");
       return;
     }
 
@@ -216,7 +216,7 @@ export default function FoodPage() {
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "12px", position: "relative", zIndex: 1 }}>
 
   <div style={{ display: "inline-block", background: "rgba(255,255,255,0.2)", padding: "10px 24px", borderRadius: "50px", backdropFilter: "blur(10px)", border: "1px solid rgba(255,255,255,0.3)" }}>
-    <span style={{ color: "white", fontWeight: "700" }}>Order Timing 10:00 AM - 6:00 PM</span>
+    <span style={{ color: "white", fontWeight: "700" }}>Order Timing 12:00 AM - 6:00 PM</span>
   </div>
 
   <div style={{ display: "inline-block", background: "rgba(255,255,255,0.2)", padding: "10px 24px", borderRadius: "50px", backdropFilter: "blur(10px)", border: "1px solid rgba(255,255,255,0.3)" }}>
@@ -397,16 +397,16 @@ export default function FoodPage() {
                 {!showForm ? (
                   (() => {
                     const h = new Date().getHours();
-                    const isTimeOk = h >= 10 && h < 18;
+                    const isTimeOk = h >= 12 && h < 18;
                     const isOpen = shopOpen !== false && isTimeOk;
                     const btnMsg = shopOpen === false
                       ? "🔴 Shop is Closed"
                       : !isTimeOk
-                      ? "⏰ Orders Closed (10AM - 6PM only)"
+                      ? "⏰ Orders Closed (12AM - 6PM only)"
                       : "💳 Pay with Razorpay";
                     return (
                       <button
-                        onClick={() => isOpen ? setShowForm(true) : alert(shopOpen === false ? "🔴 Shop is currently closed!" : "⏰ Orders accepted only between 10:00 AM - 6:00 PM!")}
+                        onClick={() => isOpen ? setShowForm(true) : alert(shopOpen === false ? "🔴 Shop is currently closed!" : "⏰ Orders accepted only between 12:00 AM - 6:00 PM!")}
                         style={{ marginTop: "16px", width: "100%", background: isOpen ? "linear-gradient(135deg, #ff9a56 0%, #ff6b35 100%)" : shopOpen === false ? "#ef4444" : "#b2bec3", color: "white", border: "none", borderRadius: "50px", padding: "14px", fontWeight: "800", fontSize: "16px", cursor: isOpen ? "pointer" : "not-allowed", boxShadow: isOpen ? "0 6px 20px rgba(255,107,53,0.35)" : "none" }}>
                         {btnMsg}
                       </button>
