@@ -7,7 +7,7 @@ declare global { interface Window { Razorpay: any; } }
 
 // Items with single price
 const singleItems = [
-  { name: "Pani Puri (6 pcs)", price: 20, image: "/food/panipuri.jpg", desc: "Crispy puris with spicy tangy water, potatoes & chickpeas", tag: "Bestseller", tagColor: "#f5576c", available: true },
+  { name: "Pani Puri (6 pcs)", price: 20, image: "/food/panipuri.jpg", desc: "Crispy puris with spicy tangy water, potatoes & chickpeas", tag: "Bestseller", tagColor: "#f5576c", available: false },
   { name: "Spring Roll", price: 60, image: "/food/springroll.jpg", desc: "Crispy rolls stuffed with veggies & spices", tag: null, tagColor: "", available: true },
 ];
 
