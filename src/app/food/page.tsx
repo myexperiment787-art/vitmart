@@ -15,11 +15,11 @@ const singleItems = [
 const halfFullItems = [
   { name: "Veg Momo", halfPrice: 50, fullPrice: 80, halfDesc: "6 pcs", fullDesc: "12 pcs", image: "/food/vegmomo.jpg", desc: "Steamed dumplings stuffed with fresh vegetables & spices", tag: "Popular", tagColor: "#f5576c", available: true },
   { name: "Fried Momo", halfPrice: 50, fullPrice: 80, halfDesc: "6 pcs", fullDesc: "12 pcs", image: "/food/friedmomo.jpg", desc: "Crispy fried dumplings served with spicy chutney", tag: "Popular", tagColor: "#f5576c", available: true },
-  { name: "Paneer Momo", halfPrice: 60, fullPrice: 90, halfDesc: "6 pcs", fullDesc: "12 pcs", image: "/food/pannermomo.jpg", desc: "Juicy momos stuffed with spiced paneer filling", tag: "Popular", tagColor: "#f5576c", available: true },
+  { name: "Paneer Momo", halfPrice: 60, fullPrice: 90, halfDesc: "6 pcs", fullDesc: "12 pcs", image: "/food/pannermomo.jpg", desc: "Juicy momos stuffed with spiced paneer filling", tag: "Popular", tagColor: "#f5576c", available: false },
   { name: "Chilli Potato", halfPrice: 50, fullPrice: 80, halfDesc: "Half", fullDesc: "Full", image: "/food/chillipotato.jpg", desc: "Crispy potatoes tossed in spicy chilli sauce", tag: "Spicy 🌶️", tagColor: "#ff6b35", available: true },
   { name: "French Fries", halfPrice: 30, fullPrice: 50, halfDesc: "Half", fullDesc: "Full", image: "/food/frenchfries.jpg", desc: "Golden crispy fries served with ketchup", tag: "Bestseller", tagColor: "#43e97b", available: true },
   { name: "Chowmein", halfPrice: 50, fullPrice: 70, halfDesc: "Half", fullDesc: "Full", image: "/food/chowmein.jpg", desc: "Stir fried noodles with veggies & sauces", tag: null, tagColor: "", available: true },
-  { name: "Manchurian", halfPrice: 50, fullPrice: 70, halfDesc: "6 pcs", fullDesc: "12 pcs", image: "/food/manchurian.jpg", desc: "Crispy veg balls in spicy manchurian sauce", tag: "Popular", tagColor: "#f5576c", available: true },
+  { name: "Manchurian", halfPrice: 50, fullPrice: 70, halfDesc: "6 pcs", fullDesc: "12 pcs", image: "/food/manchurian.jpg", desc: "Crispy veg balls in spicy manchurian sauce", tag: "Popular", tagColor: "#f5576c", available: false },
 ];
 
 export default function FoodPage() {
@@ -136,7 +136,7 @@ export default function FoodPage() {
             <p style={{ fontSize: "14px", color: "#636e72", marginBottom: "28px" }}>Thank you, <strong>{orderSuccess.customerName}</strong>! 🎉</p>
             {orderSuccess.telegramSent ? (
               <div style={{ background: "#f0fff4", border: "2px solid #43e97b", borderRadius: "12px", padding: "14px", marginBottom: "20px" }}>
-                <p style={{ fontSize: "15px", color: "#276749", fontWeight: "800", margin: 0 }}>Owner no:- 9516172851</p>
+                <p style={{ fontSize: "15px", color: "#276749", fontWeight: "800", margin: 0 }}>Owner no:- 6263062688</p>
               </div>
             ) : (
               <div style={{ marginBottom: "16px" }}>
