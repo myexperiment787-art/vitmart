@@ -23,7 +23,8 @@ const halfFullItems = [
 ];
 
 export default function FoodPage() {
-  const { cart, addToCart, increaseQty, decreaseQty, clearCart } = useCart();
+  const { getCart, addToCart, increaseQty, decreaseQty, clearCart } = useCart();
+  const cart = getCart("food");
   const [added, setAdded] = useState<string | null>(null);
   const [payLoading, setPayLoading] = useState(false);
   const [customerName, setCustomerName] = useState("");
@@ -86,7 +87,7 @@ export default function FoodPage() {
       alert(`❌ ${name} is currently out of stock!`);
       return;
     }
-    addToCart({ name, price, image });
+    addToCart({ name, price, image }, "food");
     setAdded(name);
     setTimeout(() => setAdded(null), 1200);
   };
@@ -141,7 +142,7 @@ export default function FoodPage() {
           const verifyData = await verifyRes.json();
           if (verifyData.success) {
             setOrderSuccess({ telegramSent: verifyData.telegramSent, ownerWhatsappUrl: verifyData.ownerWhatsappUrl, customerWhatsappUrl: verifyData.customerWhatsappUrl, customerPhone, customerName, total });
-            clearCart(); setCustomerName(""); setCustomerPhone(""); setShowForm(false);
+            clearCart("food"); setCustomerName(""); setCustomerPhone(""); setShowForm(false);
           } else { alert("⚠️ Payment verification failed."); }
         },
         modal: { ondismiss: () => setPayLoading(false) },
@@ -268,9 +269,9 @@ export default function FoodPage() {
                         <div style={{ fontSize: "18px", fontWeight: "900", color: "#ff6b35", marginBottom: "8px" }}>₹{item.halfPrice}</div>
                         {getQty(`${item.name} (Half)`) > 0 ? (
                           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>
-                            <button onClick={() => decreaseQty(`${item.name} (Half)`)} style={{ width: "24px", height: "24px", borderRadius: "50%", background: "#ef4444", color: "white", border: "none", cursor: "pointer", fontWeight: "bold", fontSize: "14px" }}>−</button>
+                            <button onClick={() => decreaseQty(`${item.name} (Half)`, "food")} style={{ width: "24px", height: "24px", borderRadius: "50%", background: "#ef4444", color: "white", border: "none", cursor: "pointer", fontWeight: "bold", fontSize: "14px" }}>−</button>
                             <span style={{ fontWeight: "800", fontSize: "14px" }}>{getQty(`${item.name} (Half)`)}</span>
-                            <button onClick={() => increaseQty(`${item.name} (Half)`)} style={{ width: "24px", height: "24px", borderRadius: "50%", background: "#16a34a", color: "white", border: "none", cursor: "pointer", fontWeight: "bold", fontSize: "14px" }}>+</button>
+                            <button onClick={() => increaseQty(`${item.name} (Half)`, "food")} style={{ width: "24px", height: "24px", borderRadius: "50%", background: "#16a34a", color: "white", border: "none", cursor: "pointer", fontWeight: "bold", fontSize: "14px" }}>+</button>
                           </div>
                         ) : (
                           <button onClick={() => handleAdd(`${item.name} (Half)`, item.halfPrice, item.image)}
@@ -287,9 +288,9 @@ export default function FoodPage() {
                         <div style={{ fontSize: "18px", fontWeight: "900", color: "#16a34a", marginBottom: "8px" }}>₹{item.fullPrice}</div>
                         {getQty(`${item.name} (Full)`) > 0 ? (
                           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>
-                            <button onClick={() => decreaseQty(`${item.name} (Full)`)} style={{ width: "24px", height: "24px", borderRadius: "50%", background: "#ef4444", color: "white", border: "none", cursor: "pointer", fontWeight: "bold", fontSize: "14px" }}>−</button>
+                            <button onClick={() => decreaseQty(`${item.name} (Full)`, "food")} style={{ width: "24px", height: "24px", borderRadius: "50%", background: "#ef4444", color: "white", border: "none", cursor: "pointer", fontWeight: "bold", fontSize: "14px" }}>−</button>
                             <span style={{ fontWeight: "800", fontSize: "14px" }}>{getQty(`${item.name} (Full)`)}</span>
-                            <button onClick={() => increaseQty(`${item.name} (Full)`)} style={{ width: "24px", height: "24px", borderRadius: "50%", background: "#16a34a", color: "white", border: "none", cursor: "pointer", fontWeight: "bold", fontSize: "14px" }}>+</button>
+                            <button onClick={() => increaseQty(`${item.name} (Full)`, "food")} style={{ width: "24px", height: "24px", borderRadius: "50%", background: "#16a34a", color: "white", border: "none", cursor: "pointer", fontWeight: "bold", fontSize: "14px" }}>+</button>
                           </div>
                         ) : (
                           <button onClick={() => handleAdd(`${item.name} (Full)`, item.fullPrice, item.image)}
@@ -335,9 +336,9 @@ export default function FoodPage() {
                         <span style={{ background: "#ef4444", color: "white", padding: "6px 14px", borderRadius: "50px", fontSize: "12px", fontWeight: "700" }}>❌ Not Available</span>
                       ) : qty > 0 ? (
                         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                          <button onClick={() => decreaseQty(item.name)} style={{ width: "30px", height: "30px", borderRadius: "50%", background: "#ef4444", color: "white", border: "none", cursor: "pointer", fontWeight: "bold", fontSize: "18px", display: "flex", alignItems: "center", justifyContent: "center" }}>−</button>
+                          <button onClick={() => decreaseQty(item.name, "food")} style={{ width: "30px", height: "30px", borderRadius: "50%", background: "#ef4444", color: "white", border: "none", cursor: "pointer", fontWeight: "bold", fontSize: "18px", display: "flex", alignItems: "center", justifyContent: "center" }}>−</button>
                           <span style={{ fontWeight: "800", minWidth: "24px", textAlign: "center", fontSize: "16px" }}>{qty}</span>
-                          <button onClick={() => increaseQty(item.name)} style={{ width: "30px", height: "30px", borderRadius: "50%", background: "#16a34a", color: "white", border: "none", cursor: "pointer", fontWeight: "bold", fontSize: "18px", display: "flex", alignItems: "center", justifyContent: "center" }}>+</button>
+                          <button onClick={() => increaseQty(item.name, "food")} style={{ width: "30px", height: "30px", borderRadius: "50%", background: "#16a34a", color: "white", border: "none", cursor: "pointer", fontWeight: "bold", fontSize: "18px", display: "flex", alignItems: "center", justifyContent: "center" }}>+</button>
                         </div>
                       ) : (
                         <button onClick={() => handleAdd(item.name, item.price, item.image)}
@@ -372,9 +373,9 @@ export default function FoodPage() {
                       <div style={{ fontSize: "12px", color: "#636e72" }}>₹{item.price} × {item.quantity}</div>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                      <button onClick={() => decreaseQty(item.name)} style={{ width: "24px", height: "24px", borderRadius: "50%", background: "#ef4444", color: "white", border: "none", cursor: "pointer", fontWeight: "bold", fontSize: "14px", display: "flex", alignItems: "center", justifyContent: "center" }}>−</button>
+                      <button onClick={() => decreaseQty(item.name, "food")} style={{ width: "24px", height: "24px", borderRadius: "50%", background: "#ef4444", color: "white", border: "none", cursor: "pointer", fontWeight: "bold", fontSize: "14px", display: "flex", alignItems: "center", justifyContent: "center" }}>−</button>
                       <span style={{ fontWeight: "800", minWidth: "20px", textAlign: "center" }}>{item.quantity}</span>
-                      <button onClick={() => increaseQty(item.name)} style={{ width: "24px", height: "24px", borderRadius: "50%", background: "#16a34a", color: "white", border: "none", cursor: "pointer", fontWeight: "bold", fontSize: "14px", display: "flex", alignItems: "center", justifyContent: "center" }}>+</button>
+                      <button onClick={() => increaseQty(item.name, "food")} style={{ width: "24px", height: "24px", borderRadius: "50%", background: "#16a34a", color: "white", border: "none", cursor: "pointer", fontWeight: "bold", fontSize: "14px", display: "flex", alignItems: "center", justifyContent: "center" }}>+</button>
                     </div>
                     <div style={{ fontWeight: "800", color: "#ff6b35", marginLeft: "12px", minWidth: "48px", textAlign: "right" }}>₹{item.price * item.quantity}</div>
                   </div>
@@ -433,7 +434,7 @@ export default function FoodPage() {
                     <button onClick={() => setShowForm(false)} style={{ width: "100%", background: "transparent", color: "#b2bec3", border: "1px solid #dfe6e9", borderRadius: "50px", padding: "10px", fontWeight: "600", fontSize: "13px", cursor: "pointer" }}>← Back</button>
                   </div>
                 )}
-                <button onClick={clearCart} style={{ marginTop: "10px", width: "100%", background: "transparent", color: "#b2bec3", border: "1px solid #dfe6e9", borderRadius: "50px", padding: "10px", fontWeight: "600", fontSize: "13px", cursor: "pointer" }}>🗑️ Clear Cart</button>
+                <button onClick={() => clearCart("food")} style={{ marginTop: "10px", width: "100%", background: "transparent", color: "#b2bec3", border: "1px solid #dfe6e9", borderRadius: "50px", padding: "10px", fontWeight: "600", fontSize: "13px", cursor: "pointer" }}>🗑️ Clear Cart</button>
               </>
             )}
           </div>

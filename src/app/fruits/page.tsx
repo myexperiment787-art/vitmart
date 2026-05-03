@@ -176,7 +176,7 @@ export default function FruitsPage() {
           name: fruit.name,
           price: fruit.price,
           image: fruit.image,
-        });
+        }, "fruits");
       }
       setQuantities((prev) => ({ ...prev, [fruit.name]: 0 }));
       

@@ -2,33 +2,54 @@
 import { createContext, useContext, useState } from "react";
 
 type CartItem = { name: string; price: number; image: string; quantity: number };
+
 type CartContextType = {
+  // convenience: default category cart ("default")
   cart: CartItem[];
-  addToCart: (item: Omit<CartItem, "quantity">) => void;
-  increaseQty: (name: string) => void;
-  decreaseQty: (name: string) => void;
-  clearCart: () => void;
+  // get cart for a specific category
+  getCart: (category?: string) => CartItem[];
+  addToCart: (item: Omit<CartItem, "quantity">, category?: string) => void;
+  increaseQty: (name: string, category?: string) => void;
+  decreaseQty: (name: string, category?: string) => void;
+  clearCart: (category?: string) => void;
 };
 
 const CartContext = createContext<CartContextType | null>(null);
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
-  const [cart, setCart] = useState<CartItem[]>([]);
+  // store carts per category
+  const [carts, setCarts] = useState<Record<string, CartItem[]>>({ default: [] });
+  const DEFAULT = "default";
 
-  const addToCart = (item: Omit<CartItem, "quantity">) => {
-    setCart((prev) => {
-      const existing = prev.find((i) => i.name === item.name);
-      if (existing) return prev.map((i) => i.name === item.name ? { ...i, quantity: i.quantity + 1 } : i);
-      return [...prev, { ...item, quantity: 1 }];
+  const getCart = (category = DEFAULT) => carts[category] || [];
+
+  const addToCart = (item: Omit<CartItem, "quantity">, category = DEFAULT) => {
+    setCarts((prev) => {
+      const current = prev[category] || [];
+      const existing = current.find((i) => i.name === item.name);
+      const updated = existing
+        ? current.map((i) => i.name === item.name ? { ...i, quantity: i.quantity + 1 } : i)
+        : [...current, { ...item, quantity: 1 }];
+      return { ...prev, [category]: updated };
     });
   };
 
-  const increaseQty = (name: string) => setCart((prev) => prev.map((i) => i.name === name ? { ...i, quantity: i.quantity + 1 } : i));
-  const decreaseQty = (name: string) => setCart((prev) => prev.map((i) => i.name === name ? { ...i, quantity: i.quantity - 1 } : i).filter((i) => i.quantity > 0));
-  const clearCart = () => setCart([]);
+  const increaseQty = (name: string, category = DEFAULT) => setCarts((prev) => {
+    const current = prev[category] || [];
+    const updated = current.map((i) => i.name === name ? { ...i, quantity: i.quantity + 1 } : i);
+    return { ...prev, [category]: updated };
+  });
+
+  const decreaseQty = (name: string, category = DEFAULT) => setCarts((prev) => {
+    const current = prev[category] || [];
+    const updated = current.map((i) => i.name === name ? { ...i, quantity: i.quantity - 1 } : i).filter((i) => i.quantity > 0);
+    return { ...prev, [category]: updated };
+  });
+
+  const clearCart = (category = DEFAULT) => setCarts((prev) => ({ ...prev, [category]: [] }));
 
   return (
-    <CartContext.Provider value={{ cart, addToCart, increaseQty, decreaseQty, clearCart }}>
+    <CartContext.Provider value={{ cart: getCart(), getCart, addToCart, increaseQty, decreaseQty, clearCart }}>
       {children}
     </CartContext.Provider>
   );

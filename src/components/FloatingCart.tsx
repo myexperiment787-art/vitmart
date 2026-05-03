@@ -5,12 +5,16 @@ import { useCart } from "../context/CartContext";
 import { usePathname } from "next/navigation";
 
 export default function FloatingCart() {
-  const { cart, increaseQty, decreaseQty } = useCart();
+  const { getCart, increaseQty, decreaseQty } = useCart();
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
 
   // ❌ Hide completely on the food page — it has its own sidebar cart
   if (pathname === "/food") return null;
+
+  // choose cart category based on pathname
+  const category = pathname && pathname.startsWith("/fruits") ? "fruits" : "default";
+  const cart = getCart(category);
 
   // ❌ Hide if cart is empty
   if (cart.length === 0) return null;
@@ -46,13 +50,13 @@ export default function FloatingCart() {
 
           {cart.map((item) => (
             <div key={item.name} style={{ display: "flex", justifyContent: "space-between", marginTop: "10px", alignItems: "center" }}>
-              <span>{item.name}</span>
-              <div>
-                <button onClick={() => decreaseQty(item.name)}>-</button>
-                <span style={{ margin: "0 8px" }}>{item.quantity}</span>
-                <button onClick={() => increaseQty(item.name)}>+</button>
+                <span>{item.name}</span>
+                <div>
+                  <button onClick={() => decreaseQty(item.name, category)}>-</button>
+                  <span style={{ margin: "0 8px" }}>{item.quantity}</span>
+                  <button onClick={() => increaseQty(item.name, category)}>+</button>
+                </div>
               </div>
-            </div>
           ))}
 
           <hr style={{ margin: "12px 0" }} />
