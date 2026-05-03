@@ -3,7 +3,7 @@
 export default function MedicinePage() {
   const whatsappNumber = "919630741753";
   const message =
-    "Hello Vit Mart, I want to order medicine. Please find my prescription attached.";
+    "Hello Quick Mart, I want to order medicine. Please find my prescription attached.";
 
   const whatsappLink = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
     message
@@ -109,7 +109,7 @@ export default function MedicinePage() {
               fontWeight: '700',
               color: '#00838f',
             }}>
-              Verified Medicines | Doctor's Prescription Mandatory
+              Verified Medicines | Doctor&apos;s Prescription Mandatory
             </p>
           </div>
 
@@ -147,7 +147,7 @@ export default function MedicinePage() {
               margin: 0,
               fontWeight: '600',
             }}>
-              📋 Please send your doctor's prescription directly on WhatsApp.
+              📋 Please send your doctor&apos;s prescription directly on WhatsApp.
               <br />
               ✅ Our team will verify it and deliver your medicines safely.
             </p>

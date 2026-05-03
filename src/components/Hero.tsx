@@ -97,7 +97,7 @@ export default function HeroBanner() {
             WebkitTextFillColor: "transparent",
             backgroundClip: "text",
           }}>
-            VitMart
+            QUICK MART
           </span>
         </h1>
 

@@ -22,8 +22,8 @@ export default function Navbar() {
           <div style={{ display: "flex", alignItems: "center", gap: "12px", cursor: "pointer", transition: "transform 0.3s ease" }}
             onMouseEnter={(e) => { e.currentTarget.style.transform = "scale(1.05)"; }}
             onMouseLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}>
-            <div style={{ width: "50px", height: "50px", background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "24px", boxShadow: "0 4px 15px rgba(102,126,234,0.4)" }}>🛒</div>
-            <h1 style={{ fontSize: "32px", fontWeight: "900", background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text", margin: 0, letterSpacing: "1px" }}>VIT MART</h1>
+            <div style={{ width: "50px", height: "50px", background: "linear-gradient(135deg, #ff9a56 0%, #ff6b35 100%)", borderRadius: "14px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "24px", boxShadow: "0 4px 15px rgba(255,107,53,0.35)" }}>🛍️</div>
+            <h1 style={{ fontSize: "32px", fontWeight: "900", background: "linear-gradient(135deg, #ff9a56 0%, #ff6b35 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text", margin: 0, letterSpacing: "1px" }}>QUICK MART</h1>
           </div>
         </Link>
         <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "12px", justifyContent: "center" }}>

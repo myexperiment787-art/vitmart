@@ -128,7 +128,7 @@ export default function FoodPage() {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount: data.order.amount,
         currency: "INR",
-        name: "VIT MART",
+        name: "QUICK MART",
         description: "Food Order",
         order_id: data.order.id,
         prefill: { name: customerName, contact: `91${customerPhone}` },

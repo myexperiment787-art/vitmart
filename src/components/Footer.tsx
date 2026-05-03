@@ -12,7 +12,7 @@ export default function Footer() {
 
           <div>
             <div style={{ display: "inline-block", background: "white", padding: "16px 32px", borderRadius: "20px", marginBottom: "16px", boxShadow: "0 8px 25px rgba(0,0,0,0.2)" }}>
-              <h2 style={{ fontSize: "32px", fontWeight: "900", margin: 0, background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>🛒 VIT MART</h2>
+              <h2 style={{ fontSize: "32px", fontWeight: "900", margin: 0, background: "linear-gradient(135deg, #ff9a56 0%, #ff6b35 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>🛍️ QUICK MART</h2>
             </div>
             <p style={{ color: "rgba(255,255,255,0.9)", fontSize: "15px", lineHeight: "1.7", fontWeight: "500" }}>Your trusted online store for quality products, delivered with care and convenience.</p>
           </div>
@@ -53,7 +53,7 @@ export default function Footer() {
         </div>
 
         <div style={{ borderTop: "2px solid rgba(255,255,255,0.2)", marginTop: "48px", paddingTop: "24px", textAlign: "center" }}>
-          <p style={{ color: "rgba(255,255,255,0.9)", fontSize: "14px", fontWeight: "600", margin: 0 }}>© 2025 VIT MART. All rights reserved. ❤️</p>
+          <p style={{ color: "rgba(255,255,255,0.9)", fontSize: "14px", fontWeight: "600", margin: 0 }}>© 2025 QUICK MART. All rights reserved. ❤️</p>
         </div>
       </div>
     </footer>

@@ -77,7 +77,7 @@ export default function WhyChoose() {
             backgroundClip: "text",
             marginBottom: "12px",
           }}>
-            ✨ Why Choose Vit Mart?
+            ✨ Why Choose Quick Mart?
           </h2>
           <p style={{
             fontSize: "18px",
@@ -218,7 +218,7 @@ export default function WhyChoose() {
             color: "rgba(255, 255, 255, 0.9)",
             marginBottom: "24px",
           }}>
-            Join thousands of satisfied customers who trust Vit Mart
+            Join thousands of satisfied customers who trust Quick Mart
           </p>
           <Link href="/#categories">
             <button style={{

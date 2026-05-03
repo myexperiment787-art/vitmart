@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
     const telegramChatId = process.env.TELEGRAM_CHAT_ID;
 
     const telegramMessage =
-      `🔔 *New Order — VitMart*\n\n` +
+      `🔔 *New Order — Quick Mart*\n\n` +
       `👤 Customer: ${customerName || "Not provided"}\n` +
       `📱 Phone: +91 ${customerPhone || "Not provided"}\n\n` +
       `🛒 *Order:*\n${itemsText}\n\n` +
@@ -97,7 +97,7 @@ if (sheetUrl) {
 
     const customerMessage =
       `🎉 *Order Confirmed! Thank you, ${customerName || "friend"}!*\n\n` +
-      `Your order at *VitMart* is confirmed 🛒\n\n` +
+      `Your order at *Quick Mart* is confirmed 🛒\n\n` +
       `🛒 *Your Order:*\n${itemsText}\n\n` +
       `💰 Total Paid: ₹${total}\n` +
       `🚚 Delivery to your hostel shortly!\n\n` +
@@ -109,7 +109,7 @@ if (sheetUrl) {
 
     // Backup WhatsApp URL for owner (in case Telegram not set up)
     const ownerWaMessage =
-      `🔔 *New Order — VitMart*\n\n` +
+      `🔔 *New Order — Quick Mart*\n\n` +
       `👤 ${customerName || "Unknown"}\n` +
       `📱 +91 ${customerPhone || "N/A"}\n\n` +
       `🛒 ${itemsText}\n\n` +

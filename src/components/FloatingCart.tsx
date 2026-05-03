@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useCart } from "../context/CartContext";
 import { usePathname } from "next/navigation";
 
@@ -26,7 +26,7 @@ export default function FloatingCart() {
   const handleCheckout = () => {
     const phoneNumber = "919630741753";
     const itemsText = cart.map((item) => `• ${item.name} × ${item.quantity} = ₹${item.price * item.quantity}`).join("\n");
-    const message = `🛒 *New Order from VitMart*\n\n${itemsText}\n\nSubtotal: ₹${subTotal}\nDelivery: ${delivery === 0 ? "FREE" : `₹${delivery}`}\nTotal: ₹${total}`;
+    const message = `🛒 *New Order from Quick Mart*\n\n${itemsText}\n\nSubtotal: ₹${subTotal}\nDelivery: ${delivery === 0 ? "FREE" : `₹${delivery}`}\nTotal: ₹${total}`;
     window.open(`https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`, "_blank");
   };
 
