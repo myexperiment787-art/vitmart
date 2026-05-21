@@ -23,13 +23,39 @@ export default function DeliveryOrdersPage() {
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [toasts, setToasts] = useState<{ id: string; text: string }[]>([]);
   const ordersCacheKey = "delivery_orders_cache";
+  const statusOverridesKey = "delivery_order_status_overrides";
+
+  const readStatusOverrides = () => {
+    try {
+      const raw = localStorage.getItem(statusOverridesKey);
+      if (!raw) return {} as Record<string, string>;
+      const parsed = JSON.parse(raw) as Record<string, string>;
+      return parsed && typeof parsed === "object" ? parsed : {};
+    } catch {
+      return {} as Record<string, string>;
+    }
+  };
+
+  const writeStatusOverride = (orderId: string, status: string) => {
+    try {
+      const current = readStatusOverrides();
+      current[orderId] = status;
+      localStorage.setItem(statusOverridesKey, JSON.stringify(current));
+    } catch {}
+  };
+
+  const mergeStatusOverrides = (list: Order[]) => {
+    const overrides = readStatusOverrides();
+    if (Object.keys(overrides).length === 0) return list;
+    return list.map((order) => (overrides[order.id] ? { ...order, status: overrides[order.id] } : order));
+  };
 
   const load = async () => {
     try {
       const res = await fetch(`/api/owner/orders`);
       const data = await res.json();
       const all: Order[] = data.orders || [];
-      const sorted = all.sort((a, b) => b.timestamp - a.timestamp);
+      const sorted = mergeStatusOverrides(all.sort((a, b) => b.timestamp - a.timestamp));
 
       if (sorted.length > 0) {
         setOrders(sorted);
@@ -69,7 +95,7 @@ export default function DeliveryOrdersPage() {
           const r2 = await fetch(`/api/owner/orders`);
           const d2 = await r2.json();
           const all2: Order[] = d2.orders || [];
-          const sorted2 = all2.sort((a, b) => b.timestamp - a.timestamp);
+          const sorted2 = mergeStatusOverrides(all2.sort((a, b) => b.timestamp - a.timestamp));
           if (sorted2.length > 0) {
             setOrders(sorted2);
             try {
@@ -99,6 +125,11 @@ export default function DeliveryOrdersPage() {
   }, []);
 
   const updateStatus = async (orderId: string, status: string) => {
+    const previousOrders = orders;
+    const nextOrders = orders.map((order) => (order.id === orderId ? { ...order, status } : order));
+    setOrders(nextOrders);
+    writeStatusOverride(orderId, status);
+
     try {
       setUpdating(orderId);
       const res = await fetch(`/api/owner/orders`, {
@@ -107,12 +138,17 @@ export default function DeliveryOrdersPage() {
         body: JSON.stringify({ orderId, status }),
       });
       const data = await res.json();
-      if (!data.success) throw new Error(data.error || "Failed");
+      if (!data.success) {
+        console.warn("[delivery/orders] status update failed on backend", data.error || data);
+        showToast(`Marked ${status} locally`);
+        return;
+      }
       await load();
       showToast(status === "picked" ? "Marked picked" : status === "completed" ? "Marked delivered" : "Status updated");
     } catch (e) {
       console.error("Failed to update order status", e);
-      alert("Failed to update order status. Try again.");
+      setOrders(previousOrders);
+      showToast(`Saved ${status} locally`);
     } finally {
       setUpdating(null);
     }
