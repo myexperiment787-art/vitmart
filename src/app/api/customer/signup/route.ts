@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSession, createUser, normalizePhone, publicUser, ensureSeedUsers } from "@/src/lib/auth";
+import { isDatabaseConfigured } from "@/src/lib/db";
+import { hashPassword } from "@/src/lib/customerAuth";
+import { CustomerAccount, upsertCustomerAccountCookie, readCustomerAccountsFromRequest } from "@/src/lib/customerBrowserAuth";
 
 export async function POST(req: NextRequest) {
   try {
@@ -19,13 +22,36 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: "Password must be at least 4 characters" }, { status: 400 });
     }
 
-    const customer = await createUser({ name: String(name), phone: normalizedPhone, password: String(password), role: "customer" });
-    const session = await createSession(customer.id);
+    const customer = isDatabaseConfigured()
+      ? await createUser({ name: String(name), phone: normalizedPhone, password: String(password), role: "customer" })
+      : ({
+          id: `cus_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+          name: String(name).trim(),
+          phone: normalizedPhone,
+          role: "customer",
+          created_at: Date.now(),
+        } as const);
+
+    const session = await createSession(customer);
 
     const response = NextResponse.json({
       success: true,
       customer: publicUser(customer),
     });
+
+    if (!isDatabaseConfigured()) {
+      const existingAccounts = readCustomerAccountsFromRequest(req);
+      const nextAccount: CustomerAccount = {
+        id: customer.id,
+        name: customer.name,
+        phone: normalizedPhone,
+        passwordHash: hashPassword(String(password)),
+        createdAt: Date.now(),
+      };
+      const accounts = [...existingAccounts.filter((account) => account.phone !== normalizedPhone), nextAccount];
+      response.headers.set("Set-Cookie", upsertCustomerAccountCookie(accounts));
+    }
+
     response.cookies.set({
       name: "quickmart_session",
       value: session.token,

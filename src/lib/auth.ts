@@ -38,6 +38,7 @@ type LocalSessionPayload = {
   userId: string;
   issuedAt: number;
   expiresAt: number;
+  user?: AppUser;
 };
 
 function getSessionSecret() {
@@ -76,7 +77,7 @@ function readLocalSessionToken(token: string): LocalSessionPayload | null {
 
   try {
     const payload = JSON.parse(decodeBase64Url(body)) as LocalSessionPayload;
-    if (!payload.userId || !payload.expiresAt || payload.expiresAt <= Date.now()) return null;
+    if (!payload.expiresAt || payload.expiresAt <= Date.now()) return null;
     return payload;
   } catch {
     return null;
@@ -211,8 +212,8 @@ export async function verifyPassword(phone: string, password: string, role?: Use
   return matches ? mapUser(row) : null;
 }
 
-export async function createSession(userId: string) {
-  const token = crypto.randomBytes(32).toString("hex");
+export async function createSession(userOrId: string | AppUser) {
+  const userId = typeof userOrId === "string" ? userOrId : userOrId.id;
   const now = Date.now();
   const expiresAt = now + SESSION_MAX_AGE_MS;
 
@@ -222,10 +223,13 @@ export async function createSession(userId: string) {
         userId,
         issuedAt: now,
         expiresAt,
+        ...(typeof userOrId === "string" ? {} : { user: userOrId }),
       }),
       expiresAt,
     };
   }
+
+  const token = crypto.randomBytes(32).toString("hex");
 
   await query(
     `INSERT INTO app_sessions (token, user_id, created_at, expires_at) VALUES ($1, $2, $3, $4)`,
@@ -239,6 +243,7 @@ export async function getUserFromSessionToken(token: string) {
   if (!isDatabaseConfigured()) {
     const session = readLocalSessionToken(token);
     if (!session) return null;
+    if (session.user) return session.user;
     const user = readLocalUsers().find((entry) => entry.id === session.userId);
     return user ? ({ id: user.id, name: user.name, phone: user.phone, role: user.role as UserRole, created_at: user.created_at } as AppUser) : null;
   }
