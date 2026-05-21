@@ -130,28 +130,39 @@ export default function DeliveryOrdersPage() {
     setOrders(nextOrders);
     writeStatusOverride(orderId, status);
 
-    try {
-      setUpdating(orderId);
-      const res = await fetch(`/api/owner/orders`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderId, status }),
-      });
-      const data = await res.json();
-      if (!data.success) {
-        console.warn("[delivery/orders] status update failed on backend", data.error || data);
-        showToast(`Marked ${status} locally`);
-        return;
+    setUpdating(orderId);
+    void (async () => {
+      try {
+        const res = await fetch(`/api/owner/orders`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ orderId, status }),
+        });
+
+        if (!res.ok) {
+          const text = await res.text().catch(() => "");
+          console.warn("[delivery/orders] backend status update failed", { orderId, status, httpStatus: res.status, text });
+          showToast(`Marked ${status} locally`);
+          return;
+        }
+
+        const data = await res.json().catch(() => null);
+        if (data && data.success === false) {
+          console.warn("[delivery/orders] backend status update returned failure", data.error || data);
+          showToast(`Marked ${status} locally`);
+          return;
+        }
+
+        await load();
+        showToast(status === "picked" ? "Marked picked" : status === "completed" ? "Marked delivered" : "Status updated");
+      } catch (e) {
+        console.error("Failed to update order status", e);
+        setOrders(previousOrders);
+        showToast(`Saved ${status} locally`);
+      } finally {
+        setUpdating(null);
       }
-      await load();
-      showToast(status === "picked" ? "Marked picked" : status === "completed" ? "Marked delivered" : "Status updated");
-    } catch (e) {
-      console.error("Failed to update order status", e);
-      setOrders(previousOrders);
-      showToast(`Saved ${status} locally`);
-    } finally {
-      setUpdating(null);
-    }
+    })();
   };
 
   const showToast = (text: string) => {
