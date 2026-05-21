@@ -37,11 +37,13 @@ export default function OwnerRestaurantOrdersPage() {
   const restaurantId = parseInt(params.restaurantId as string);
   const restaurantName = restaurantNames[restaurantId] || "Unknown Restaurant";
   const lastOrderCountStorageKey = `owner_last_order_count_${restaurantId}`;
+  const ordersStorageKey = `owner_orders_cache_${restaurantId}`;
   const debugOrderNotifications = true;
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [lastOrderCount, setLastOrderCount] = useState(0);
   const lastOrderCountRef = useRef<number>(0);
+  const ordersRef = useRef<Order[]>([]);
   const [showInstructions, setShowInstructions] = useState(true);
   const [showSettingsPanel, setShowSettingsPanel] = useState(false);
   const [shopStatus, setShopStatus] = useState<"OPEN" | "CLOSED">("OPEN");
@@ -213,6 +215,15 @@ export default function OwnerRestaurantOrdersPage() {
   // Fetch orders from API endpoint for this restaurant only
   useEffect(() => {
     try {
+      const storedOrders = sessionStorage.getItem(ordersStorageKey);
+      if (storedOrders) {
+        const parsedOrders = JSON.parse(storedOrders) as Order[];
+        if (Array.isArray(parsedOrders) && parsedOrders.length > 0) {
+          ordersRef.current = parsedOrders;
+          setOrders(parsedOrders);
+        }
+      }
+
       const stored = sessionStorage.getItem(lastOrderCountStorageKey);
       if (stored !== null) {
         const parsed = Number(stored);
@@ -232,7 +243,7 @@ export default function OwnerRestaurantOrdersPage() {
         console.warn("[owner-orders] failed to restore lastOrderCount", error);
       }
     }
-  }, [lastOrderCountStorageKey, restaurantId]);
+  }, [lastOrderCountStorageKey, ordersStorageKey, restaurantId]);
 
   useEffect(() => {
     const loadOrders = async () => {
@@ -280,12 +291,25 @@ export default function OwnerRestaurantOrdersPage() {
         }
 
         const sorted = orderList.sort((a, b) => b.timestamp - a.timestamp);
-        setOrders(sorted);
-        setLastOrderCount(nextCount);
-        lastOrderCountRef.current = nextCount;
+        const nextOrders = sorted.length > 0 ? sorted : ordersRef.current;
+
+        if (sorted.length === 0 && ordersRef.current.length > 0) {
+          if (debugOrderNotifications) {
+            console.warn("[owner-orders] empty poll ignored to avoid clearing cached orders", {
+              restaurantId,
+              previousCount: ordersRef.current.length,
+            });
+          }
+        }
+
+        ordersRef.current = nextOrders;
+        setOrders(nextOrders);
+        setLastOrderCount(nextOrders.length);
+        lastOrderCountRef.current = nextOrders.length;
 
         try {
-          sessionStorage.setItem(lastOrderCountStorageKey, String(nextCount));
+          sessionStorage.setItem(lastOrderCountStorageKey, String(nextOrders.length));
+          sessionStorage.setItem(ordersStorageKey, JSON.stringify(nextOrders));
         } catch (error) {
           if (debugOrderNotifications) {
             console.warn("[owner-orders] failed to persist lastOrderCount", error);

@@ -81,20 +81,21 @@ export async function createOrder(order: {
   return order;
 }
 
-export async function getOrdersByCustomer(customerId: string) {
+export async function getOrdersByCustomer(customerKey: string) {
+  const normalizedCustomerKey = String(customerKey || "").replace(/\D/g, "");
   if (!isDatabaseConfigured()) {
     const users = readLocalUsers();
-    const user = users.find((u) => u.id === customerId);
-    const phone = user?.phone;
+    const user = users.find((u) => u.id === customerKey || u.phone === normalizedCustomerKey);
+    const phone = user?.phone || normalizedCustomerKey || undefined;
     return readLocalOrders()
-      .filter((o) => o.customer_id === customerId || (phone ? o.customer_phone === phone : false))
+      .filter((o) => o.customer_id === customerKey || o.customer_id === normalizedCustomerKey || (phone ? o.customer_phone === phone : false))
       .sort((a, b) => Number(b.timestamp) - Number(a.timestamp))
       .map((o) => normalizeLocalOrder(o));
   }
 
   const result = await query<AppOrder>(
-    `SELECT * FROM app_orders WHERE customer_id = $1 OR customer_phone = (SELECT phone FROM app_users WHERE id = $1) ORDER BY timestamp DESC`,
-    [customerId]
+    `SELECT * FROM app_orders WHERE customer_id = $1 OR customer_phone = $1 OR customer_phone = (SELECT phone FROM app_users WHERE id = $1) ORDER BY timestamp DESC`,
+    [customerKey]
   );
   return result.rows;
 }

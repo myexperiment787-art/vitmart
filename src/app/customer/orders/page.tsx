@@ -44,6 +44,7 @@ export default function CustomerOrdersPage() {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const testDeliveryNumber = "9117865343";
+  const cacheKey = "customer_orders_cache";
 
   useEffect(() => {
     const load = async () => {
@@ -65,8 +66,41 @@ export default function CustomerOrdersPage() {
           return;
         }
 
-        setOrders(data.orders || []);
+        const nextOrders = Array.isArray(data.orders) ? data.orders : [];
+        if (nextOrders.length > 0) {
+          setOrders(nextOrders);
+          try {
+            localStorage.setItem(cacheKey, JSON.stringify(nextOrders));
+          } catch {}
+        } else {
+          try {
+            const cached = localStorage.getItem(cacheKey);
+            if (cached) {
+              const parsed = JSON.parse(cached) as CustomerOrder[];
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                setOrders(parsed);
+              } else {
+                setOrders([]);
+              }
+            } else {
+              setOrders([]);
+            }
+          } catch {
+            setOrders([]);
+          }
+        }
       } catch {
+        try {
+          const cached = localStorage.getItem(cacheKey);
+          if (cached) {
+            const parsed = JSON.parse(cached) as CustomerOrder[];
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              setOrders(parsed);
+              setError(null);
+              return;
+            }
+          }
+        } catch {}
         setError("Unable to load your orders");
       } finally {
         setLoading(false);

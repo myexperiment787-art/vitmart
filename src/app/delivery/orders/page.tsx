@@ -22,16 +22,40 @@ export default function DeliveryOrdersPage() {
   const [updating, setUpdating] = useState<string | null>(null);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [toasts, setToasts] = useState<{ id: string; text: string }[]>([]);
+  const ordersCacheKey = "delivery_orders_cache";
 
   const load = async () => {
     try {
       const res = await fetch(`/api/owner/orders`);
       const data = await res.json();
       const all: Order[] = data.orders || [];
-      setOrders(all.sort((a, b) => b.timestamp - a.timestamp));
+      const sorted = all.sort((a, b) => b.timestamp - a.timestamp);
+
+      if (sorted.length > 0) {
+        setOrders(sorted);
+        try {
+          localStorage.setItem(ordersCacheKey, JSON.stringify(sorted));
+        } catch {}
+      } else {
+        try {
+          const cached = localStorage.getItem(ordersCacheKey);
+          if (cached) {
+            const parsed = JSON.parse(cached) as Order[];
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              setOrders(parsed);
+            } else {
+              setOrders([]);
+            }
+          } else {
+            setOrders([]);
+          }
+        } catch {
+          setOrders([]);
+        }
+      }
 
       // Auto-assign unassigned orders to default driver 'raju'
-      const toAssign = all.filter((o: Order) => !o.driver && o.status !== "completed");
+      const toAssign = sorted.filter((o: Order) => !o.driver && o.status !== "completed");
       if (toAssign.length > 0) {
         try {
           await Promise.all(toAssign.map((o) =>
@@ -45,7 +69,13 @@ export default function DeliveryOrdersPage() {
           const r2 = await fetch(`/api/owner/orders`);
           const d2 = await r2.json();
           const all2: Order[] = d2.orders || [];
-          setOrders(all2.sort((a, b) => b.timestamp - a.timestamp));
+          const sorted2 = all2.sort((a, b) => b.timestamp - a.timestamp);
+          if (sorted2.length > 0) {
+            setOrders(sorted2);
+            try {
+              localStorage.setItem(ordersCacheKey, JSON.stringify(sorted2));
+            } catch {}
+          }
         } catch (err) {
           console.error("Failed to auto-assign drivers:", err);
         }
