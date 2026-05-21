@@ -16,7 +16,15 @@ type CustomerSession = {
   createdAt: number;
 };
 
-const DATA_DIR = path.join(process.cwd(), ".data");
+function getDataDir() {
+  if (process.env.NODE_ENV === "production") {
+    return path.join(process.env.TMPDIR || "/tmp", "vitmart-data");
+  }
+
+  return path.join(process.cwd(), ".data");
+}
+
+const DATA_DIR = getDataDir();
 const CUSTOMERS_FILE = path.join(DATA_DIR, "customers.json");
 const SESSIONS_FILE = path.join(DATA_DIR, "customer-sessions.json");
 

@@ -2,7 +2,15 @@ import crypto from "crypto";
 import fs from "fs";
 import path from "path";
 
-const DATA_DIR = path.join(process.cwd(), ".data");
+function getDataDir() {
+  if (process.env.NODE_ENV === "production") {
+    return path.join(process.env.TMPDIR || "/tmp", "vitmart-data");
+  }
+
+  return path.join(process.cwd(), ".data");
+}
+
+const DATA_DIR = getDataDir();
 const USERS_FILE = path.join(DATA_DIR, "users.json");
 const SESSIONS_FILE = path.join(DATA_DIR, "sessions.json");
 const ORDERS_FILE = path.join(DATA_DIR, "orders.json");

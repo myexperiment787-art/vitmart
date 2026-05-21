@@ -9,7 +9,15 @@ type OwnerSettings = {
   restaurantOutOfStockItems: Record<string, string[]>;
 };
 
-const DATA_DIR = path.join(process.cwd(), ".data");
+function getDataDir() {
+  if (process.env.NODE_ENV === "production") {
+    return path.join(process.env.TMPDIR || "/tmp", "vitmart-data");
+  }
+
+  return path.join(process.cwd(), ".data");
+}
+
+const DATA_DIR = getDataDir();
 const OWNER_SETTINGS_FILE = path.join(DATA_DIR, "owner-settings.json");
 
 function ensureDataDir() {
