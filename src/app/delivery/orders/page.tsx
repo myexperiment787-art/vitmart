@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type Order = {
   id: string;
@@ -22,6 +22,7 @@ export default function DeliveryOrdersPage() {
   const [updating, setUpdating] = useState<string | null>(null);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [toasts, setToasts] = useState<{ id: string; text: string }[]>([]);
+  const ordersRef = useRef<Order[]>([]);
   const ordersCacheKey = "delivery_orders_cache";
   const statusOverridesKey = "delivery_order_status_overrides";
   const statusRank: Record<string, number> = {
@@ -35,6 +36,14 @@ export default function DeliveryOrdersPage() {
     const backend = backendStatus || "pending";
     const override = overrideStatus || "pending";
     return overrideStatus ? override : backend;
+  };
+
+  const resolveHighestStatus = (...statuses: Array<string | undefined>) => {
+    return statuses.reduce((highest, status) => {
+      const next = (status || "pending") as keyof typeof statusRank;
+      const current = highest as keyof typeof statusRank;
+      return statusRank[next] > statusRank[current] ? next : current;
+    }, "pending");
   };
 
   const readStatusOverrides = () => {
@@ -65,14 +74,37 @@ export default function DeliveryOrdersPage() {
     });
   };
 
+  const mergeWithCurrentState = (backendOrders: Order[]) => {
+    const overrides = readStatusOverrides();
+    const currentById = new Map<string, Order>(ordersRef.current.map((order: Order) => [order.id, order]));
+
+    return backendOrders.map((backendOrder) => {
+      const currentOrder = currentById.get(backendOrder.id);
+      const mergedStatus = resolveHighestStatus(
+        backendOrder.status,
+        currentOrder?.status,
+        overrides[backendOrder.id]
+      );
+
+      const mergedOrder = {
+        ...currentOrder,
+        ...backendOrder,
+        status: mergedStatus,
+      } as Order;
+
+      return mergedOrder;
+    });
+  };
+
   const load = async () => {
     try {
       const res = await fetch(`/api/owner/orders`);
       const data = await res.json();
       const all: Order[] = data.orders || [];
-      const sorted = mergeStatusOverrides(all.sort((a, b) => b.timestamp - a.timestamp));
+      const sorted = mergeWithCurrentState(all.sort((a, b) => b.timestamp - a.timestamp));
 
       if (sorted.length > 0) {
+        ordersRef.current = sorted;
         setOrders(sorted);
         try {
           localStorage.setItem(ordersCacheKey, JSON.stringify(sorted));
@@ -83,14 +115,18 @@ export default function DeliveryOrdersPage() {
           if (cached) {
             const parsed = JSON.parse(cached) as Order[];
             if (Array.isArray(parsed) && parsed.length > 0) {
+              ordersRef.current = parsed;
               setOrders(parsed);
             } else {
+              ordersRef.current = [];
               setOrders([]);
             }
           } else {
+            ordersRef.current = [];
             setOrders([]);
           }
         } catch {
+          ordersRef.current = [];
           setOrders([]);
         }
       }
@@ -110,8 +146,9 @@ export default function DeliveryOrdersPage() {
           const r2 = await fetch(`/api/owner/orders`);
           const d2 = await r2.json();
           const all2: Order[] = d2.orders || [];
-          const sorted2 = mergeStatusOverrides(all2.sort((a, b) => b.timestamp - a.timestamp));
+          const sorted2 = mergeWithCurrentState(all2.sort((a, b) => b.timestamp - a.timestamp));
           if (sorted2.length > 0) {
+            ordersRef.current = sorted2;
             setOrders(sorted2);
             try {
               localStorage.setItem(ordersCacheKey, JSON.stringify(sorted2));
@@ -141,6 +178,7 @@ export default function DeliveryOrdersPage() {
 
   const updateStatus = async (orderId: string, status: string) => {
     const nextOrders = orders.map((order) => (order.id === orderId ? { ...order, status } : order));
+    ordersRef.current = nextOrders;
     setOrders(nextOrders);
     writeStatusOverride(orderId, status);
 
