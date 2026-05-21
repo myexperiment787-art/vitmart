@@ -36,9 +36,12 @@ export default function OwnerRestaurantOrdersPage() {
   const params = useParams();
   const restaurantId = parseInt(params.restaurantId as string);
   const restaurantName = restaurantNames[restaurantId] || "Unknown Restaurant";
+  const lastOrderCountStorageKey = `owner_last_order_count_${restaurantId}`;
+  const debugOrderNotifications = true;
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [lastOrderCount, setLastOrderCount] = useState(0);
+  const lastOrderCountRef = useRef<number>(0);
   const [showInstructions, setShowInstructions] = useState(true);
   const [showSettingsPanel, setShowSettingsPanel] = useState(false);
   const [shopStatus, setShopStatus] = useState<"OPEN" | "CLOSED">("OPEN");
@@ -209,7 +212,31 @@ export default function OwnerRestaurantOrdersPage() {
 
   // Fetch orders from API endpoint for this restaurant only
   useEffect(() => {
+    try {
+      const stored = sessionStorage.getItem(lastOrderCountStorageKey);
+      if (stored !== null) {
+        const parsed = Number(stored);
+        if (!Number.isNaN(parsed) && parsed >= 0) {
+          lastOrderCountRef.current = parsed;
+          setLastOrderCount(parsed);
+          if (debugOrderNotifications) {
+            console.log("[owner-orders] restored lastOrderCount", {
+              restaurantId,
+              lastOrderCount: parsed,
+            });
+          }
+        }
+      }
+    } catch (error) {
+      if (debugOrderNotifications) {
+        console.warn("[owner-orders] failed to restore lastOrderCount", error);
+      }
+    }
+  }, [lastOrderCountStorageKey, restaurantId]);
+
+  useEffect(() => {
     const loadOrders = async () => {
+      const startedAt = Date.now();
       try {
         const res = await fetch(`/api/owner/orders?restaurantId=${restaurantId}`);
         const data = await res.json();
@@ -218,18 +245,52 @@ export default function OwnerRestaurantOrdersPage() {
         );
 
         // Play ringtone if new orders arrived (only if enabled)
-        if (orderList.length > lastOrderCount && lastOrderCount > 0) {
+        // Use a ref for lastOrderCount to avoid effect dependency races and
+        // to keep a stable polling interval. Persist the ref on every poll.
+        const prevCount = lastOrderCountRef.current;
+        const nextCount = orderList.length;
+
+        if (debugOrderNotifications) {
+          console.log("[owner-orders] poll", {
+            restaurantId,
+            prevCount,
+            nextCount,
+            audioEnabled,
+            elapsedMs: Date.now() - startedAt,
+          });
+        }
+
+        if (nextCount > prevCount && prevCount > 0) {
           if (audioEnabled) {
-            playRingtone();
+            try {
+              playRingtone();
+              if (debugOrderNotifications) {
+                console.log("[owner-orders] ringtone played", {
+                  restaurantId,
+                  prevCount,
+                  nextCount,
+                });
+              }
+            } catch (e) {
+              console.warn("Failed to play ringtone", e);
+            }
           } else {
-            // show a visual hint if audio isn't enabled yet
             console.info("New order arrived but audio is disabled. Call enableAudio() to allow ringtone.");
           }
         }
 
         const sorted = orderList.sort((a, b) => b.timestamp - a.timestamp);
         setOrders(sorted);
-        setLastOrderCount(sorted.length);
+        setLastOrderCount(nextCount);
+        lastOrderCountRef.current = nextCount;
+
+        try {
+          sessionStorage.setItem(lastOrderCountStorageKey, String(nextCount));
+        } catch (error) {
+          if (debugOrderNotifications) {
+            console.warn("[owner-orders] failed to persist lastOrderCount", error);
+          }
+        }
 
         // compute formatted timestamps on client only (avoid server/client mismatch)
         const times: Record<string, string> = {};
@@ -246,10 +307,11 @@ export default function OwnerRestaurantOrdersPage() {
       }
     };
 
+    // start polling once per mount (or when restaurantId/audioEnabled changes)
     loadOrders();
     const interval = setInterval(loadOrders, 2000); // Check every 2 seconds
     return () => clearInterval(interval);
-  }, [restaurantId, lastOrderCount]);
+  }, [restaurantId, audioEnabled]);
 
   const markOrderAsAccepted = async (orderId: string) => {
     setOrders((prev) =>
