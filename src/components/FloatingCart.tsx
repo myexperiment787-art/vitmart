@@ -9,8 +9,8 @@ export default function FloatingCart() {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
 
-  // ❌ Hide completely on the food page — it has its own sidebar cart
-  if (pathname === "/food") return null;
+  // Hide on pages that already provide their own cart/checkout UI
+  if (pathname === "/food" || pathname === "/restaurants") return null;
 
   // choose cart category based on pathname
   const category = pathname && pathname.startsWith("/fruits") ? "fruits" : "default";

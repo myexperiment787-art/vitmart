@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
+import { postOrderToSheet } from "../../googleSheetHelper";
+import { ensureSeedUsers, findUserByPhone } from "@/src/lib/auth";
+import { createOrder } from "@/src/lib/orders";
 
 export async function POST(req: NextRequest) {
   try {
@@ -11,15 +14,36 @@ export async function POST(req: NextRequest) {
       total,
       customerName,
       customerPhone,
+      customerAddress,
+      restaurantName,
+      restaurantId,
     } = await req.json();
 
+    await ensureSeedUsers();
+    // Don't require an authenticated session here because Razorpay handler may not send cookies
+    // instead, try to associate the order with an existing customer by phone if possible
+    let customerId: string | null = null;
+    try {
+      const found = customerPhone ? await findUserByPhone(customerPhone, "customer") : null;
+      if (found) customerId = found.id;
+    } catch (e) {
+      console.warn("[order/verify] failed to lookup user by phone", e);
+    }
+
     // ✅ Step 1: Verify Razorpay signature
-    const expectedSignature = crypto
-      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET!)
-      .update(`${razorpay_order_id}|${razorpay_payment_id}`)
-      .digest("hex");
+    const secret = process.env.RAZORPAY_KEY_SECRET;
+    console.log("[order/verify] Razorpay secret present=", Boolean(secret));
+    if (!secret) {
+      console.error("[order/verify] Missing RAZORPAY_KEY_SECRET env var");
+      return NextResponse.json({ success: false, error: "Payment gateway not configured (missing secret)" }, { status: 500 });
+    }
+
+    const expectedSignature = crypto.createHmac("sha256", secret).update(`${razorpay_order_id}|${razorpay_payment_id}`).digest("hex");
+    console.log("[order/verify] expectedSignature=", expectedSignature);
+    console.log("[order/verify] receivedSignature=", razorpay_signature);
 
     if (expectedSignature !== razorpay_signature) {
+      console.error("[order/verify] Signature mismatch");
       return NextResponse.json({ success: false, error: "Invalid signature" }, { status: 400 });
     }
 
@@ -31,7 +55,64 @@ export async function POST(req: NextRequest) {
       )
       .join("\n");
 
-    // ✅ Step 2: Auto-send to YOUR Telegram (100% automatic, no click needed)
+    const itemAmount = cartItems.reduce(
+      (sum: number, item: { price: number; quantity: number }) => sum + item.price * item.quantity,
+      0
+    );
+
+    // ✅ Step 2: Save order to owner dashboard
+    const orderForOwner = {
+      customerName,
+      customerPhone,
+      customerAddress,
+      items: cartItems
+        .map((item: any) => `${item.name} ×${item.quantity}`)
+        .join(", "),
+      itemAmount,
+      total,
+      paymentId: razorpay_payment_id,
+      restaurantName: restaurantName || "Unknown Restaurant",
+      restaurantId: restaurantId || 0,
+    };
+
+    let savedOrderId: string | null = null;
+    try {
+      const order = await createOrder({
+        id: `order_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+        customerId: customerId,
+        customerName: customerName || "",
+        customerPhone: customerPhone || "",
+        customerAddress: customerAddress || null,
+        items: orderForOwner.items,
+        itemAmount,
+        total,
+        paymentId: razorpay_payment_id,
+        timestamp: Date.now(),
+        restaurantName: restaurantName || "Unknown Restaurant",
+        restaurantId: restaurantId || 0,
+        status: "pending",
+      });
+      savedOrderId = order.id;
+      console.log("✅ Order saved to owner dashboard", savedOrderId);
+    } catch (e) {
+      console.error("Failed to save to owner dashboard:", e);
+    }
+
+    // ✅ Step 2b: Post to restaurant-specific Google Sheet (include orderId so sheet can update instead of duplicate)
+    if (restaurantId && restaurantId > 0) {
+      await postOrderToSheet(restaurantId, {
+        orderDate: new Date(Date.now()).toLocaleString('en-IN'),
+        customerName: customerName || "Not provided",
+        items: cartItems
+          .map((item: any) => `${item.name} ×${item.quantity}`)
+          .join(", "),
+        deliveryAddress: customerAddress || "Not provided",
+        totalAmount: total,
+        orderId: savedOrderId || undefined,
+      });
+    }
+
+    // ✅ Step 3: Auto-send to YOUR Telegram (100% automatic, no click needed)
     const telegramToken = process.env.TELEGRAM_BOT_TOKEN;
     const telegramChatId = process.env.TELEGRAM_CHAT_ID;
 
@@ -69,7 +150,8 @@ if (sheetUrl) {
     console.error("Google Sheets error:", e);
   }
 }
-    if (telegramToken && telegramChatId) {
+    // Only send Telegram notification for FOOD orders, NOT restaurant orders
+    if (telegramToken && telegramChatId && (!restaurantId || restaurantId === 0)) {
       try {
         const tgRes = await fetch(
           `https://api.telegram.org/bot${telegramToken}/sendMessage`,

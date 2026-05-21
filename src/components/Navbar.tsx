@@ -1,9 +1,23 @@
 "use client";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { getCustomerSession, logout as logoutSession } from "../lib/customerAuthClient";
 
 export default function Navbar() {
   const [hoveredButton, setHoveredButton] = useState<string | null>(null);
+  const [customerName, setCustomerName] = useState<string | null>(null);
+
+  useEffect(() => {
+    getCustomerSession().then((session) => {
+      setCustomerName(session?.name || null);
+    });
+  }, []);
+
+  const logout = () => {
+    setCustomerName(null);
+    logoutSession();
+    window.location.href = "/customer/login?next=/restaurants";
+  };
 
   const navButtons = [
     
@@ -36,6 +50,8 @@ export default function Navbar() {
               </button>
             </Link>
           ))}
+
+          {/* Authentication buttons removed from navbar — handled on restaurants page only */}
         </div>
       </div>
     </nav>

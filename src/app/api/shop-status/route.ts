@@ -1,34 +1,24 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { getShopStatus, setShopStatus } from "@/src/lib/ownerSettings";
 
 export async function GET() {
   try {
-    const sheetUrl = process.env.GOOGLE_SHEET_URL;
-
-    if (!sheetUrl) {
-      return NextResponse.json({ status: "OPEN" });
-    }
-
-    // Google Apps Script requires following redirects
-    const res = await fetch(sheetUrl, {
-      method: "GET",
-      redirect: "follow",
-      headers: { "Accept": "application/json" },
-      cache: "no-store",
-    });
-
-    const text = await res.text();
-    console.log("Shop status raw response:", text);
-
-    try {
-      const data = JSON.parse(text);
-      return NextResponse.json({ status: data.status || "OPEN" });
-    } catch {
-      console.error("JSON parse failed:", text);
-      return NextResponse.json({ status: "OPEN" });
-    }
+    return NextResponse.json({ status: getShopStatus() });
 
   } catch (error) {
     console.error("Shop status error:", error);
     return NextResponse.json({ status: "OPEN" });
+  }
+}
+
+export async function PATCH(req: NextRequest) {
+  try {
+    const { status } = await req.json();
+    const nextStatus = status === "CLOSED" ? "CLOSED" : "OPEN";
+    setShopStatus(nextStatus);
+    return NextResponse.json({ success: true, status: nextStatus });
+  } catch (error) {
+    console.error("Shop status update error:", error);
+    return NextResponse.json({ success: false, error: "Failed to update shop status" }, { status: 500 });
   }
 }

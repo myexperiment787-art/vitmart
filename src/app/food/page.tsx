@@ -59,7 +59,7 @@ export default function FoodPage() {
       }
     };
     checkShopStatus();
-    const interval = setInterval(checkShopStatus, 30000);
+    const interval = setInterval(checkShopStatus, 5000);
     return () => clearInterval(interval);
   }, []);
 
@@ -78,7 +78,7 @@ export default function FoodPage() {
       }
     };
     checkStockStatus();
-    const interval = setInterval(checkStockStatus, 30000);
+    const interval = setInterval(checkStockStatus, 5000);
     return () => clearInterval(interval);
   }, []);
 
@@ -133,17 +133,26 @@ export default function FoodPage() {
         order_id: data.order.id,
         prefill: { name: customerName, contact: `91${customerPhone}` },
         theme: { color: "#ff9a56" },
-        handler: async (response: any) => {
-          const verifyRes = await fetch("/api/order/verify", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ ...response, cartItems: cart, total, customerName, customerPhone }),
-          });
-          const verifyData = await verifyRes.json();
-          if (verifyData.success) {
-            setOrderSuccess({ telegramSent: verifyData.telegramSent, ownerWhatsappUrl: verifyData.ownerWhatsappUrl, customerWhatsappUrl: verifyData.customerWhatsappUrl, customerPhone, customerName, total });
-            clearCart("food"); setCustomerName(""); setCustomerPhone(""); setShowForm(false);
-          } else { alert("⚠️ Payment verification failed."); }
+        handler: (response: any) => {
+          setOrderSuccess({ telegramSent: false, ownerWhatsappUrl: "", customerWhatsappUrl: null, customerPhone, customerName, total });
+          clearCart("food");
+          setCustomerName("");
+          setCustomerPhone("");
+          setShowForm(false);
+
+          void (async () => {
+            const verifyRes = await fetch("/api/order/verify", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ ...response, cartItems: cart, total, customerName, customerPhone }),
+            });
+            const verifyData = await verifyRes.json();
+            if (verifyData.success) {
+              setOrderSuccess({ telegramSent: verifyData.telegramSent, ownerWhatsappUrl: verifyData.ownerWhatsappUrl, customerWhatsappUrl: verifyData.customerWhatsappUrl, customerPhone, customerName, total });
+            } else {
+              alert("⚠️ Payment verification failed.");
+            }
+          })();
         },
         modal: { ondismiss: () => setPayLoading(false) },
       };
@@ -164,15 +173,18 @@ export default function FoodPage() {
             <h2 style={{ fontSize: "28px", fontWeight: "900", color: "#2d3436", marginBottom: "8px" }}>Payment Successful!</h2>
             <p style={{ fontSize: "16px", color: "#636e72", marginBottom: "4px" }}>Total Paid: <strong style={{ color: "#ff6b35" }}>₹{orderSuccess.total}</strong></p>
             <p style={{ fontSize: "14px", color: "#636e72", marginBottom: "28px" }}>Thank you, <strong>{orderSuccess.customerName}</strong>! 🎉</p>
-            {orderSuccess.telegramSent ? (
+            {orderSuccess.ownerWhatsappUrl ? (
               <div style={{ background: "#f0fff4", border: "2px solid #43e97b", borderRadius: "12px", padding: "14px", marginBottom: "20px" }}>
                 <p style={{ fontSize: "15px", color: "#276749", fontWeight: "800", margin: 0 }}>Owner no:- 6263062688</p>
               </div>
             ) : (
-              <div style={{ marginBottom: "16px" }}>
-                <a href={orderSuccess.ownerWhatsappUrl} target="_blank" rel="noreferrer" style={{ display: "block", background: "linear-gradient(135deg, #25D366, #128C7E)", color: "white", padding: "14px", borderRadius: "50px", fontWeight: "800", fontSize: "15px", textDecoration: "none" }}>
-                  📲 Send Order to My WhatsApp
-                </a>
+              <div style={{ background: "#fff7ed", border: "2px solid #fdba74", borderRadius: "12px", padding: "14px", marginBottom: "16px" }}>
+                <p style={{ margin: 0, fontSize: "14px", color: "#9a3412", fontWeight: 800 }}>
+                  ⏳ Confirming your order...
+                </p>
+                <p style={{ margin: "6px 0 0", fontSize: "13px", color: "#c2410c" }}>
+                  The payment is done. Your order will appear here in a moment.
+                </p>
               </div>
             )}
             <button onClick={() => setOrderSuccess(null)} style={{ background: "linear-gradient(135deg, #ff9a56, #ff6b35)", color: "white", border: "none", borderRadius: "50px", padding: "14px 32px", fontWeight: "800", fontSize: "16px", cursor: "pointer", width: "100%" }}>

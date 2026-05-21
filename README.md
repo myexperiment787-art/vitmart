@@ -20,6 +20,12 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Storage Modes
+
+- Local mode: leave `DATABASE_URL` unset to use JSON files in the `.data/` folder for users, sessions, and orders.
+- Database mode: set `DATABASE_URL` to a Postgres connection string to use Postgres for users, sessions, and orders.
+- Seed logins (owner/delivery) are created automatically in either mode using the `DEFAULT_OWNER_*` and `DEFAULT_DELIVERY_*` env vars.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

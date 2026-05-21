@@ -1,0 +1,52 @@
+[
+  {
+    "id": "user_51fde9db-b1ff-4955-a177-e8ef35addec4",
+    "name": "Restaurant Owner",
+    "phone": "9000000001",
+    "role": "owner",
+    "password_hash": "$2b$10$cowriuXklEAokcfOGUaBTOqlSLv21PgnvIs2NsiC6TP3bB8e92WoO",
+    "created_at": 1779308313513,
+    "reset_token_hash": "$2b$10$n1ZLn9loj8Ofl/So.xmpqeevuNgPMXT8u8z7Yd5fEjkTvoEgFMKkq",
+    "reset_token_expires_at": 1779310368263
+  },
+  {
+    "id": "user_e40102ce-8edd-45b5-ac5c-ab7348044dec",
+    "name": "Delivery Boy",
+    "phone": "9000000002",
+    "role": "delivery",
+    "password_hash": "$2b$10$k13IRE774IS8Czxx8D1m.eEiaG.fW255X3/DRs1vR1YhJ89kHBK1.",
+    "created_at": 1779308313713,
+    "reset_token_hash": null,
+    "reset_token_expires_at": null
+  },
+  {
+    "id": "user_7f6be5a6-bbcb-4608-b036-210a84033d84",
+    "name": "tejasva midha",
+    "phone": "9117865343",
+    "role": "customer",
+    "password_hash": "$2b$10$uNlFoWZdD/GabGLS8LqHbu1dKIyEvMktkcUkvlarzUR4A9FRkI4NO",
+    "created_at": 1779308329425,
+    "reset_token_hash": null,
+    "reset_token_expires_at": null
+  },
+  {
+    "id": "user_4e26e539-13f2-4154-90ec-36b4a6b5a43e",
+    "name": "Restaurant Owner",
+    "phone": "9117865343",
+    "role": "owner",
+    "password_hash": "$2b$10$QFkLWXxrmpyYwA0TBY7WIuBNVnfXkHKfsb3ci4Ih2li21iD9Ds4ZW",
+    "created_at": 1779360217259,
+    "reset_token_hash": null,
+    "reset_token_expires_at": null
+  },
+  {
+    "id": "user_1581756b-374d-4d24-bddf-ea201a810387",
+    "name": "Delivery Boy",
+    "phone": "9117865343",
+    "role": "delivery",
+    "password_hash": "$2b$10$B2MWMD0kmDScLBXtCX5SNu5y1halcSsa6sAbOWXhoEjo/MD7xa10K",
+    "created_at": 1779360217341,
+    "reset_token_hash": null,
+    "reset_token_expires_at": null
+  }
+]

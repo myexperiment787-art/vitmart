@@ -1,0 +1,7 @@
+{
+  "shopStatus": "OPEN",
+  "globalOutOfStockItems": [],
+  "restaurantOutOfStockItems": {
+    "1": []
+  }
+}
