@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Navbar from "@/src/components/Navbar";
 
@@ -11,7 +10,6 @@ export default function CustomerLoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [nextPath, setNextPath] = useState("/restaurants");
-  const router = useRouter();
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);

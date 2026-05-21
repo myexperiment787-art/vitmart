@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import { isDatabaseConfigured, query } from "@/src/lib/db";
-import { readLocalUsers, writeLocalUsers, readLocalSessions, writeLocalSessions } from "@/src/lib/localStore";
+import { readLocalUsers, writeLocalUsers } from "@/src/lib/localStore";
 
 export type UserRole = "customer" | "owner" | "delivery";
 
@@ -33,6 +33,55 @@ type SessionRow = {
 
 const SESSION_MAX_AGE_MS = 1000 * 60 * 60 * 24 * 30;
 const RESET_TOKEN_MAX_AGE_MS = 1000 * 60 * 30;
+
+type LocalSessionPayload = {
+  userId: string;
+  issuedAt: number;
+  expiresAt: number;
+};
+
+function getSessionSecret() {
+  return process.env.AUTH_SESSION_SECRET || process.env.SESSION_SECRET || "quickmart-session-secret";
+}
+
+function encodeBase64Url(input: string) {
+  return Buffer.from(input).toString("base64url");
+}
+
+function decodeBase64Url(input: string) {
+  return Buffer.from(input, "base64url").toString("utf8");
+}
+
+function signSessionPayload(payload: string) {
+  return crypto.createHmac("sha256", getSessionSecret()).update(payload).digest("base64url");
+}
+
+function createLocalSessionToken(payload: LocalSessionPayload) {
+  const body = encodeBase64Url(JSON.stringify(payload));
+  const signature = signSessionPayload(body);
+  return `v1.${body}.${signature}`;
+}
+
+function readLocalSessionToken(token: string): LocalSessionPayload | null {
+  const parts = token.split(".");
+  if (parts.length !== 3 || parts[0] !== "v1") return null;
+
+  const [, body, signature] = parts;
+  const expectedSignature = signSessionPayload(body);
+  const expectedBuffer = Buffer.from(expectedSignature);
+  const signatureBuffer = Buffer.from(signature);
+  if (expectedBuffer.length !== signatureBuffer.length || !crypto.timingSafeEqual(expectedBuffer, signatureBuffer)) {
+    return null;
+  }
+
+  try {
+    const payload = JSON.parse(decodeBase64Url(body)) as LocalSessionPayload;
+    if (!payload.userId || !payload.expiresAt || payload.expiresAt <= Date.now()) return null;
+    return payload;
+  } catch {
+    return null;
+  }
+}
 
 function normalizePhone(phone: string) {
   const digits = phone.replace(/\D/g, "");
@@ -168,10 +217,14 @@ export async function createSession(userId: string) {
   const expiresAt = now + SESSION_MAX_AGE_MS;
 
   if (!isDatabaseConfigured()) {
-    const sessions = readLocalSessions();
-    sessions.push({ token, user_id: userId, created_at: now, expires_at: expiresAt });
-    writeLocalSessions(sessions);
-    return { token, expiresAt };
+    return {
+      token: createLocalSessionToken({
+        userId,
+        issuedAt: now,
+        expiresAt,
+      }),
+      expiresAt,
+    };
   }
 
   await query(
@@ -184,9 +237,9 @@ export async function createSession(userId: string) {
 
 export async function getUserFromSessionToken(token: string) {
   if (!isDatabaseConfigured()) {
-    const session = readLocalSessions().find((entry) => entry.token === token && entry.expires_at > Date.now());
+    const session = readLocalSessionToken(token);
     if (!session) return null;
-    const user = readLocalUsers().find((entry) => entry.id === session.user_id);
+    const user = readLocalUsers().find((entry) => entry.id === session.userId);
     return user ? ({ id: user.id, name: user.name, phone: user.phone, role: user.role as UserRole, created_at: user.created_at } as AppUser) : null;
   }
 
@@ -216,8 +269,6 @@ export async function authenticate(phone: string, password: string, role?: UserR
 
 export async function deleteSession(token: string) {
   if (!isDatabaseConfigured()) {
-    const sessions = readLocalSessions().filter((s) => s.token !== token);
-    writeLocalSessions(sessions);
     return;
   }
 
