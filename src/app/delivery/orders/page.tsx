@@ -181,6 +181,9 @@ export default function DeliveryOrdersPage() {
     ordersRef.current = nextOrders;
     setOrders(nextOrders);
     writeStatusOverride(orderId, status);
+    try {
+      localStorage.setItem(ordersCacheKey, JSON.stringify(nextOrders));
+    } catch {}
 
     setUpdating(orderId);
     void (async () => {
