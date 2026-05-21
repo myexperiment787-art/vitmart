@@ -34,7 +34,7 @@ export default function DeliveryOrdersPage() {
   const resolveStatus = (backendStatus: string | undefined, overrideStatus: string | undefined) => {
     const backend = backendStatus || "pending";
     const override = overrideStatus || "pending";
-    return statusRank[override] > statusRank[backend] ? override : backend;
+    return overrideStatus ? override : backend;
   };
 
   const readStatusOverrides = () => {
@@ -166,6 +166,12 @@ export default function DeliveryOrdersPage() {
           showToast(`Marked ${status} locally`);
           return;
         }
+
+        try {
+          const current = readStatusOverrides();
+          current[orderId] = status;
+          localStorage.setItem(statusOverridesKey, JSON.stringify(current));
+        } catch {}
 
         showToast(status === "picked" ? "Marked picked" : status === "completed" ? "Marked delivered" : "Status updated");
       } catch (e) {
