@@ -24,6 +24,18 @@ export default function DeliveryOrdersPage() {
   const [toasts, setToasts] = useState<{ id: string; text: string }[]>([]);
   const ordersCacheKey = "delivery_orders_cache";
   const statusOverridesKey = "delivery_order_status_overrides";
+  const statusRank: Record<string, number> = {
+    pending: 0,
+    accepted: 1,
+    picked: 2,
+    completed: 3,
+  };
+
+  const resolveStatus = (backendStatus: string | undefined, overrideStatus: string | undefined) => {
+    const backend = backendStatus || "pending";
+    const override = overrideStatus || "pending";
+    return statusRank[override] > statusRank[backend] ? override : backend;
+  };
 
   const readStatusOverrides = () => {
     try {
@@ -47,7 +59,10 @@ export default function DeliveryOrdersPage() {
   const mergeStatusOverrides = (list: Order[]) => {
     const overrides = readStatusOverrides();
     if (Object.keys(overrides).length === 0) return list;
-    return list.map((order) => (overrides[order.id] ? { ...order, status: overrides[order.id] } : order));
+    return list.map((order) => {
+      const mergedStatus = resolveStatus(order.status, overrides[order.id]);
+      return mergedStatus === order.status ? order : { ...order, status: mergedStatus };
+    });
   };
 
   const load = async () => {
@@ -125,7 +140,6 @@ export default function DeliveryOrdersPage() {
   }, []);
 
   const updateStatus = async (orderId: string, status: string) => {
-    const previousOrders = orders;
     const nextOrders = orders.map((order) => (order.id === orderId ? { ...order, status } : order));
     setOrders(nextOrders);
     writeStatusOverride(orderId, status);
@@ -153,11 +167,9 @@ export default function DeliveryOrdersPage() {
           return;
         }
 
-        await load();
         showToast(status === "picked" ? "Marked picked" : status === "completed" ? "Marked delivered" : "Status updated");
       } catch (e) {
         console.error("Failed to update order status", e);
-        setOrders(previousOrders);
         showToast(`Saved ${status} locally`);
       } finally {
         setUpdating(null);
