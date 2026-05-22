@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ensureSeedUsers } from "@/src/lib/auth";
 import { getOrderById, getOrdersByRestaurant, updateOrder } from "@/src/lib/orders";
-import { postOrderToSheet } from "../../googleSheetHelper";
+import { formatOrderDate, postOrderToSheet } from "../../googleSheetHelper";
 
 export async function GET(req: NextRequest) {
   try {
@@ -60,7 +60,7 @@ export async function PATCH(req: NextRequest) {
       const order = existingOrder;
       if (order.restaurant_id && order.restaurant_id > 0) {
         await postOrderToSheet(order.restaurant_id, {
-          orderDate: new Date(Number(order.timestamp)).toLocaleString("en-IN"),
+          orderDate: formatOrderDate(Number(order.timestamp)),
           customerName: order.customer_name || "Not provided",
           items: order.items || "Not provided",
           deliveryAddress: order.customer_address || "Not provided",

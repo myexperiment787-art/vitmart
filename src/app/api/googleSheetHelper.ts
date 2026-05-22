@@ -13,6 +13,20 @@ export const getRestaurantSheetUrl = (restaurantId: number): string | null => {
   return urlMap[restaurantId] || null;
 };
 
+export const formatOrderDate = (timestamp: number | string | Date = Date.now()) => {
+  const date = timestamp instanceof Date ? timestamp : new Date(timestamp);
+  return new Intl.DateTimeFormat("en-IN", {
+    timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true,
+  }).format(date);
+};
+
 export const postOrderToSheet = async (
   restaurantId: number,
   orderData: {

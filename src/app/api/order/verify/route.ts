@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
-import { postOrderToSheet } from "../../googleSheetHelper";
+import { formatOrderDate, postOrderToSheet } from "../../googleSheetHelper";
 import { ensureSeedUsers, findUserByPhone } from "@/src/lib/auth";
 import { createOrder } from "@/src/lib/orders";
 
@@ -103,7 +103,7 @@ export async function POST(req: NextRequest) {
     // ✅ Step 2b: Post to restaurant-specific Google Sheet (include orderId so sheet can update instead of duplicate)
     if (restaurantId && restaurantId > 0) {
       await postOrderToSheet(restaurantId, {
-        orderDate: new Date(Date.now()).toLocaleString('en-IN'),
+        orderDate: formatOrderDate(savedOrder?.timestamp ?? Date.now()),
         customerName: customerName || "Not provided",
         items: cartItems
           .map((item: any) => `${item.name} ×${item.quantity}`)
