@@ -86,6 +86,7 @@ export default function OwnerRestaurantOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [lastOrderCount, setLastOrderCount] = useState(0);
   const lastOrderCountRef = useRef<number>(0);
+  const seenOrderIdsRef = useRef<Set<string>>(new Set());
   const ordersRef = useRef<Order[]>([]);
   const [showInstructions, setShowInstructions] = useState(true);
   const [showSettingsPanel, setShowSettingsPanel] = useState(false);
@@ -108,6 +109,25 @@ export default function OwnerRestaurantOrdersPage() {
 
   const [audioEnabled, setAudioEnabled] = useState<boolean>(false);
   const [formattedTimes, setFormattedTimes] = useState<Record<string, string>>({});
+
+  const seenOrderIdsStorageKey = `owner_seen_order_ids_${restaurantId}`;
+
+  const readSeenOrderIds = () => {
+    try {
+      const raw = sessionStorage.getItem(seenOrderIdsStorageKey);
+      if (!raw) return new Set<string>();
+      const parsed = JSON.parse(raw) as string[];
+      return new Set(Array.isArray(parsed) ? parsed.filter((id) => typeof id === "string") : []);
+    } catch {
+      return new Set<string>();
+    }
+  };
+
+  const saveSeenOrderIds = (ids: Set<string>) => {
+    try {
+      sessionStorage.setItem(seenOrderIdsStorageKey, JSON.stringify(Array.from(ids)));
+    } catch {}
+  };
 
   const enableAudio = async () => {
     try {
@@ -258,6 +278,8 @@ export default function OwnerRestaurantOrdersPage() {
   // Fetch orders from API endpoint for this restaurant only
   useEffect(() => {
     try {
+      seenOrderIdsRef.current = readSeenOrderIds();
+
       const storedOrders = sessionStorage.getItem(ordersStorageKey);
       if (storedOrders) {
         const parsedOrders = JSON.parse(storedOrders) as Order[];
@@ -298,10 +320,11 @@ export default function OwnerRestaurantOrdersPage() {
         const orderList: Order[] = (data.orders || []).filter(
           (o: Order) => o.restaurantId === restaurantId
         );
+        const pendingOrders = orderList.filter((order) => order.status === "pending");
+        const unseenPendingOrders = pendingOrders.filter((order) => !seenOrderIdsRef.current.has(order.id));
 
-        // Play ringtone if new orders arrived (only if enabled)
-        // Use a ref for lastOrderCount to avoid effect dependency races and
-        // to keep a stable polling interval. Persist the ref on every poll.
+        // Play ringtone only when a brand new pending order id appears.
+        // This avoids re-alerting when an order moves from accepted -> picked.
         const prevCount = lastOrderCountRef.current;
         const nextCount = orderList.length;
 
@@ -310,12 +333,14 @@ export default function OwnerRestaurantOrdersPage() {
             restaurantId,
             prevCount,
             nextCount,
+            pendingCount: pendingOrders.length,
+            unseenPendingCount: unseenPendingOrders.length,
             audioEnabled,
             elapsedMs: Date.now() - startedAt,
           });
         }
 
-        if (nextCount > prevCount && prevCount > 0) {
+        if (unseenPendingOrders.length > 0) {
           if (audioEnabled) {
             try {
               playRingtone();
@@ -324,6 +349,7 @@ export default function OwnerRestaurantOrdersPage() {
                   restaurantId,
                   prevCount,
                   nextCount,
+                  unseenPendingIds: unseenPendingOrders.map((order) => order.id),
                 });
               }
             } catch (e) {
@@ -353,6 +379,10 @@ export default function OwnerRestaurantOrdersPage() {
         } catch (e) {
           // ignore storage errors
         }
+        const nextSeenIds = new Set(seenOrderIdsRef.current);
+        nextOrders.forEach((order) => nextSeenIds.add(order.id));
+        seenOrderIdsRef.current = nextSeenIds;
+        saveSeenOrderIds(nextSeenIds);
         setLastOrderCount(nextOrders.length);
         lastOrderCountRef.current = nextOrders.length;
 
