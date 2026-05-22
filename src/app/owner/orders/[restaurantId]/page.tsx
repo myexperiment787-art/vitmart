@@ -382,7 +382,9 @@ export default function OwnerRestaurantOrdersPage() {
 
   const markOrderAsAccepted = async (orderId: string) => {
     setOrders((prev) => {
-      const next = prev.map((order) => (order.id === orderId ? { ...order, status: "accepted" } : order));
+      const next = prev.map((order) =>
+        order.id === orderId ? ({ ...order, status: "accepted" } as Order) : order
+      );
       ordersRef.current = next;
       try {
         saveBrowserOrders(next.map(ownerOrderToBrowserOrder));
