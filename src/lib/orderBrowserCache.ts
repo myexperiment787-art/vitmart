@@ -25,12 +25,16 @@ const statusRank: Record<StatusKey, number> = {
   completed: 3,
 };
 
+function normalizeStatus(s: string | undefined): StatusKey {
+  if (s === "accepted" || s === "picked" || s === "completed") return s as StatusKey;
+  return "pending";
+}
+
 function highestStatus(...statuses: Array<StatusKey | string | undefined>): StatusKey {
-  return statuses.reduce((currentHighest, nextStatus) => {
-    const current = (currentHighest as string) || "pending";
-    const next = (nextStatus as string) || "pending";
-    return statusRank[next as StatusKey] > statusRank[current as StatusKey] ? (next as StatusKey) : (current as StatusKey);
-  }, "pending" as StatusKey);
+  const normalized = statuses.map((s) => normalizeStatus(s as string | undefined));
+  return normalized.reduce((current: StatusKey, next: StatusKey) => {
+    return statusRank[next] > statusRank[current] ? next : current;
+  }, "pending");
 }
 
 export function readBrowserOrders(): BrowserOrder[] {
