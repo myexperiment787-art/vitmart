@@ -16,19 +16,21 @@ export type BrowserOrder = {
 
 const ORDER_CACHE_KEY = "quickmart_all_orders_cache";
 
-const statusRank: Record<string, number> = {
+type StatusKey = "pending" | "accepted" | "picked" | "completed";
+
+const statusRank: Record<StatusKey, number> = {
   pending: 0,
   accepted: 1,
   picked: 2,
   completed: 3,
 };
 
-function highestStatus(...statuses: Array<string | undefined>) {
+function highestStatus(...statuses: Array<StatusKey | string | undefined>): StatusKey {
   return statuses.reduce((currentHighest, nextStatus) => {
-    const current = currentHighest || "pending";
-    const next = nextStatus || "pending";
-    return statusRank[next] > statusRank[current] ? next : current;
-  }, "pending");
+    const current = (currentHighest as string) || "pending";
+    const next = (nextStatus as string) || "pending";
+    return statusRank[next as StatusKey] > statusRank[current as StatusKey] ? (next as StatusKey) : (current as StatusKey);
+  }, "pending" as StatusKey);
 }
 
 export function readBrowserOrders(): BrowserOrder[] {
@@ -60,7 +62,7 @@ export function saveBrowserOrders(orders: BrowserOrder[]) {
       byId.set(order.id, {
         ...previous,
         ...order,
-        status: highestStatus(previous?.status, order.status),
+        status: highestStatus(previous?.status, order.status) as string,
       });
     }
 
@@ -92,7 +94,7 @@ export function mergeBrowserOrders(backendOrders: BrowserOrder[]) {
     byId.set(order.id, {
       ...previous,
       ...order,
-      status: highestStatus(previous?.status, order.status),
+      status: highestStatus(previous?.status, order.status) as string,
     });
   }
 
