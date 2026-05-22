@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import Navbar from "@/src/components/Navbar";
 import { getCustomerSession } from "../../../lib/customerAuthClient";
 import { useRouter } from "next/navigation";
-import { mergeBrowserOrders, readBrowserOrders, saveBrowserOrders } from "@/src/lib/orderBrowserCache";
+import { mergeBrowserOrders, readBrowserOrders } from "@/src/lib/orderBrowserCache";
 
 type CustomerOrder = {
   id: string;
@@ -14,9 +14,22 @@ type CustomerOrder = {
   total: number;
   timestamp: number;
   status: string;
-  driver?: string;
-  customerAddress?: string;
+  driver?: string | null;
+  customerAddress?: string | null;
 };
+
+function toCustomerOrder(order: any): CustomerOrder {
+  return {
+    id: String(order.id ?? ""),
+    restaurantName: String(order.restaurantName ?? order.restaurant_name ?? ""),
+    items: String(order.items ?? ""),
+    total: Number(order.total ?? 0),
+    timestamp: Number(order.timestamp ?? Date.now()),
+    status: String(order.status ?? "pending"),
+    driver: order.driver ?? null,
+    customerAddress: order.customerAddress ?? order.customer_address ?? null,
+  };
+}
 
 function statusLabel(status: string) {
   if (status === "accepted") return "Cooking";
@@ -67,16 +80,15 @@ export default function CustomerOrdersPage() {
           return;
         }
 
-        const nextOrders = mergeBrowserOrders(Array.isArray(data.orders) ? data.orders : []);
+        const nextOrders = mergeBrowserOrders(Array.isArray(data.orders) ? data.orders : []).map(toCustomerOrder);
         if (nextOrders.length > 0) {
-          saveBrowserOrders(nextOrders);
           setOrders(nextOrders);
           try {
             localStorage.setItem(cacheKey, JSON.stringify(nextOrders));
           } catch {}
         } else {
           try {
-            const browserCached = readBrowserOrders() as CustomerOrder[];
+            const browserCached = readBrowserOrders().map(toCustomerOrder);
             if (browserCached.length > 0) {
               setOrders(browserCached);
               setError(null);

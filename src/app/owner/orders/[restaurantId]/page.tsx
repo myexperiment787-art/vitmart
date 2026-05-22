@@ -344,6 +344,9 @@ export default function OwnerRestaurantOrdersPage() {
       const next = prev.map((order) => (order.id === orderId ? { ...order, status: "accepted" } : order));
       ordersRef.current = next;
       saveBrowserOrders(next);
+      try {
+        localStorage.setItem(ordersStorageKey, JSON.stringify(next));
+      } catch {}
       return next;
     });
 
@@ -363,6 +366,9 @@ export default function OwnerRestaurantOrdersPage() {
       const next = prev.filter((order) => order.id !== orderId);
       ordersRef.current = next;
       saveBrowserOrders(next);
+      try {
+        localStorage.setItem(ordersStorageKey, JSON.stringify(next));
+      } catch {}
       return next;
     });
 
