@@ -26,6 +26,24 @@ type Order = {
   status: "pending" | "accepted" | "completed";
 };
 
+function toOwnerOrder(order: any): Order {
+  return {
+    id: String(order.id ?? ""),
+    customerName: String(order.customerName ?? order.customer_name ?? ""),
+    customerPhone: String(order.customerPhone ?? order.customer_phone ?? ""),
+    customerAddress: order.customerAddress ?? order.customer_address ?? undefined,
+    driver: order.driver ?? null,
+    items: String(order.items ?? ""),
+    itemAmount: order.itemAmount ?? order.item_amount ?? undefined,
+    total: Number(order.total ?? 0),
+    paymentId: String(order.paymentId ?? order.payment_id ?? ""),
+    timestamp: Number(order.timestamp ?? Date.now()),
+    restaurantName: String(order.restaurantName ?? order.restaurant_name ?? ""),
+    restaurantId: Number(order.restaurantId ?? order.restaurant_id ?? 0),
+    status: (order.status === "accepted" ? "accepted" : order.status === "completed" ? "completed" : "pending") as Order["status"],
+  };
+}
+
 const restaurantNames: { [key: number]: string } = {
   1: "Momo House",
   2: "Chinese Corner",
@@ -220,8 +238,9 @@ export default function OwnerRestaurantOrdersPage() {
       if (storedOrders) {
         const parsedOrders = JSON.parse(storedOrders) as Order[];
         if (Array.isArray(parsedOrders) && parsedOrders.length > 0) {
-          ordersRef.current = parsedOrders;
-          setOrders(parsedOrders);
+          const normalizedStoredOrders = parsedOrders.map(toOwnerOrder);
+          ordersRef.current = normalizedStoredOrders;
+          setOrders(normalizedStoredOrders);
         }
       }
 
@@ -291,7 +310,7 @@ export default function OwnerRestaurantOrdersPage() {
           }
         }
 
-        const sorted = mergeBrowserOrders(orderList.sort((a, b) => b.timestamp - a.timestamp));
+        const sorted = mergeBrowserOrders(orderList.sort((a, b) => b.timestamp - a.timestamp)).map(toOwnerOrder);
         const nextOrders = sorted.length > 0 ? sorted : ordersRef.current;
 
         if (sorted.length === 0 && ordersRef.current.length > 0) {
