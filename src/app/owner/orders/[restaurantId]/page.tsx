@@ -23,7 +23,7 @@ type Order = {
   timestamp: number;
   restaurantName: string;
   restaurantId: number;
-  status: "pending" | "accepted" | "completed";
+  status: "pending" | "accepted" | "picked" | "completed";
 };
 
 function toOwnerOrder(order: any): Order {
@@ -40,7 +40,13 @@ function toOwnerOrder(order: any): Order {
     timestamp: Number(order.timestamp ?? Date.now()),
     restaurantName: String(order.restaurantName ?? order.restaurant_name ?? ""),
     restaurantId: Number(order.restaurantId ?? order.restaurant_id ?? 0),
-    status: (order.status === "accepted" ? "accepted" : order.status === "completed" ? "completed" : "pending") as Order["status"],
+    status: (order.status === "accepted"
+      ? "accepted"
+      : order.status === "picked"
+      ? "picked"
+      : order.status === "completed"
+      ? "completed"
+      : "pending") as Order["status"],
   };
 }
 
@@ -491,7 +497,7 @@ export default function OwnerRestaurantOrdersPage() {
   const menuItems = restaurantMenuItems[restaurantId] || [];
 
   const pendingOrders = orders.filter((o) => o.status === "pending");
-  const readyOrders = orders.filter((o) => o.status === "accepted");
+  const readyOrders = orders.filter((o) => o.status === "accepted" || o.status === "picked");
 
   return (
     <>
