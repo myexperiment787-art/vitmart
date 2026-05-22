@@ -1,6 +1,7 @@
 "use client";
 import { useRef, useState, useEffect } from "react";
 import { useParams } from "next/navigation";
+import { mergeBrowserOrders, readBrowserOrders, saveBrowserOrders } from "@/src/lib/orderBrowserCache";
 
 const restaurantMenuItems: Record<number, string[]> = {
   1: ["Veg Momo (8 pcs)", "Fried Momo (8 pcs)", "Paneer Momo (8 pcs)", "Tandoori Momo (8 pcs)", "Momo Soup"],
@@ -290,7 +291,7 @@ export default function OwnerRestaurantOrdersPage() {
           }
         }
 
-        const sorted = orderList.sort((a, b) => b.timestamp - a.timestamp);
+        const sorted = mergeBrowserOrders(orderList.sort((a, b) => b.timestamp - a.timestamp));
         const nextOrders = sorted.length > 0 ? sorted : ordersRef.current;
 
         if (sorted.length === 0 && ordersRef.current.length > 0) {
@@ -304,6 +305,7 @@ export default function OwnerRestaurantOrdersPage() {
 
         ordersRef.current = nextOrders;
         setOrders(nextOrders);
+        saveBrowserOrders(nextOrders);
         setLastOrderCount(nextOrders.length);
         lastOrderCountRef.current = nextOrders.length;
 
@@ -338,11 +340,12 @@ export default function OwnerRestaurantOrdersPage() {
   }, [restaurantId, audioEnabled]);
 
   const markOrderAsAccepted = async (orderId: string) => {
-    setOrders((prev) =>
-      prev.map((order) =>
-        order.id === orderId ? { ...order, status: "accepted" } : order
-      )
-    );
+    setOrders((prev) => {
+      const next = prev.map((order) => (order.id === orderId ? { ...order, status: "accepted" } : order));
+      ordersRef.current = next;
+      saveBrowserOrders(next);
+      return next;
+    });
 
     try {
       await fetch("/api/owner/orders", {
@@ -356,7 +359,12 @@ export default function OwnerRestaurantOrdersPage() {
   };
 
   const markOrderAsCompleted = async (orderId: string) => {
-    setOrders((prev) => prev.filter((order) => order.id !== orderId));
+    setOrders((prev) => {
+      const next = prev.filter((order) => order.id !== orderId);
+      ordersRef.current = next;
+      saveBrowserOrders(next);
+      return next;
+    });
 
     try {
       await fetch("/api/owner/orders", {

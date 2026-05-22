@@ -76,6 +76,7 @@ export async function POST(req: NextRequest) {
     };
 
     let savedOrderId: string | null = null;
+    let savedOrder: any = null;
     try {
       const order = await createOrder({
         id: `order_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
@@ -93,6 +94,7 @@ export async function POST(req: NextRequest) {
         status: "pending",
       });
       savedOrderId = order.id;
+      savedOrder = order;
       console.log("✅ Order saved to owner dashboard", savedOrderId);
     } catch (e) {
       console.error("Failed to save to owner dashboard:", e);
@@ -206,6 +208,8 @@ if (sheetUrl) {
       ownerWhatsappUrl,
       customerWhatsappUrl,
       paymentId: razorpay_payment_id,
+      savedOrderId,
+      savedOrder,
     });
 
   } catch (error: any) {

@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import Navbar from "../../components/Navbar";
 import { useCart } from "../../context/CartContext";
+import { saveBrowserOrder } from "../../lib/orderBrowserCache";
 
 declare global { interface Window { Razorpay: any; } }
 
@@ -148,6 +149,22 @@ export default function FoodPage() {
             });
             const verifyData = await verifyRes.json();
             if (verifyData.success) {
+              saveBrowserOrder({
+                ...(verifyData.savedOrder || {}),
+                id: String(verifyData.savedOrderId || verifyData.paymentId || response.razorpay_payment_id || `order_${Date.now()}`),
+                customerName,
+                customerPhone,
+                customerAddress: undefined,
+                items: cart.map((item) => `${item.name} ×${item.quantity}`).join(", "),
+                itemAmount: cart.reduce((sum, item) => sum + item.price * item.quantity, 0),
+                total,
+                timestamp: Date.now(),
+                restaurantName: "Street Food & Snacks",
+                restaurantId: 0,
+                status: "pending",
+                driver: null,
+                paymentId: verifyData.paymentId || response.razorpay_payment_id || null,
+              });
               setOrderSuccess({ telegramSent: verifyData.telegramSent, ownerWhatsappUrl: verifyData.ownerWhatsappUrl, customerWhatsappUrl: verifyData.customerWhatsappUrl, customerPhone, customerName, total });
             } else {
               alert("⚠️ Payment verification failed.");

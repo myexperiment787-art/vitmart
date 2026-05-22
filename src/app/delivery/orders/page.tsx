@@ -1,11 +1,12 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { mergeBrowserOrders, readBrowserOrders, saveBrowserOrders } from "@/src/lib/orderBrowserCache";
 
 type Order = {
   id: string;
   customerName: string;
   customerPhone: string;
-  customerAddress?: string;
+  customerAddress?: string | null;
   items: string;
   itemAmount?: number;
   total: number;
@@ -101,16 +102,31 @@ export default function DeliveryOrdersPage() {
       const res = await fetch(`/api/owner/orders`);
       const data = await res.json();
       const all: Order[] = data.orders || [];
-      const sorted = mergeWithCurrentState(all.sort((a, b) => b.timestamp - a.timestamp));
+      const cachedOrders = mergeBrowserOrders(all.sort((a, b) => b.timestamp - a.timestamp)).map((order) => ({
+        ...order,
+        customerAddress: order.customerAddress ?? undefined,
+      })) as Order[];
+      const sorted = mergeWithCurrentState(cachedOrders);
 
       if (sorted.length > 0) {
         ordersRef.current = sorted;
         setOrders(sorted);
+        saveBrowserOrders(sorted);
         try {
           localStorage.setItem(ordersCacheKey, JSON.stringify(sorted));
         } catch {}
       } else {
         try {
+          const browserCached = readBrowserOrders().map((order) => ({
+            ...order,
+            customerAddress: order.customerAddress ?? undefined,
+          })) as Order[];
+          if (browserCached.length > 0) {
+            ordersRef.current = browserCached;
+            setOrders(browserCached);
+            return;
+          }
+
           const cached = localStorage.getItem(ordersCacheKey);
           if (cached) {
             const parsed = JSON.parse(cached) as Order[];
@@ -181,6 +197,7 @@ export default function DeliveryOrdersPage() {
     ordersRef.current = nextOrders;
     setOrders(nextOrders);
     writeStatusOverride(orderId, status);
+    saveBrowserOrders(nextOrders);
     try {
       localStorage.setItem(ordersCacheKey, JSON.stringify(nextOrders));
     } catch {}

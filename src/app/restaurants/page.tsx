@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import Navbar from "../../components/Navbar";
 import { useCart } from "../../context/CartContext";
 import { getCustomerSession, logout as logoutSession } from "../../lib/customerAuthClient";
+import { saveBrowserOrder } from "../../lib/orderBrowserCache";
 
 declare global {
   interface Window {
@@ -312,6 +313,23 @@ export default function RestaurantsPage() {
               alert("Payment verification failed. Please contact support.");
               return;
             }
+
+            saveBrowserOrder({
+              ...(verifyData.savedOrder || {}),
+              id: String(verifyData.savedOrderId || verifyData.paymentId || response.razorpay_payment_id || `order_${Date.now()}`),
+              customerName,
+              customerPhone,
+              customerAddress,
+              items: cart.map((item) => `${item.name} ×${item.quantity}`).join(", "),
+              itemAmount: cart.reduce((sum, item) => sum + item.price * item.quantity, 0),
+              total,
+              timestamp: Date.now(),
+              restaurantName: selectedRestaurant.name,
+              restaurantId: selectedRestaurant.id,
+              status: "pending",
+              driver: null,
+              paymentId: verifyData.paymentId || response.razorpay_payment_id || null,
+            });
 
             clearCart(cartCategory);
           })();

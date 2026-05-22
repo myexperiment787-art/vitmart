@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import Navbar from "@/src/components/Navbar";
 import { getCustomerSession } from "../../../lib/customerAuthClient";
 import { useRouter } from "next/navigation";
+import { mergeBrowserOrders, readBrowserOrders, saveBrowserOrders } from "@/src/lib/orderBrowserCache";
 
 type CustomerOrder = {
   id: string;
@@ -66,14 +67,22 @@ export default function CustomerOrdersPage() {
           return;
         }
 
-        const nextOrders = Array.isArray(data.orders) ? data.orders : [];
+        const nextOrders = mergeBrowserOrders(Array.isArray(data.orders) ? data.orders : []);
         if (nextOrders.length > 0) {
+          saveBrowserOrders(nextOrders);
           setOrders(nextOrders);
           try {
             localStorage.setItem(cacheKey, JSON.stringify(nextOrders));
           } catch {}
         } else {
           try {
+            const browserCached = readBrowserOrders() as CustomerOrder[];
+            if (browserCached.length > 0) {
+              setOrders(browserCached);
+              setError(null);
+              return;
+            }
+
             const cached = localStorage.getItem(cacheKey);
             if (cached) {
               const parsed = JSON.parse(cached) as CustomerOrder[];
