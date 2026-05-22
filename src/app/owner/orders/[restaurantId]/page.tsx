@@ -1,7 +1,7 @@
 "use client";
 import { useRef, useState, useEffect } from "react";
 import { useParams } from "next/navigation";
-import { mergeBrowserOrders, readBrowserOrders, saveBrowserOrders } from "@/src/lib/orderBrowserCache";
+import { mergeBrowserOrders, readBrowserOrders, saveBrowserOrders, BrowserOrder } from "@/src/lib/orderBrowserCache";
 
 const restaurantMenuItems: Record<number, string[]> = {
   1: ["Veg Momo (8 pcs)", "Fried Momo (8 pcs)", "Paneer Momo (8 pcs)", "Tandoori Momo (8 pcs)", "Momo Soup"],
@@ -41,6 +41,24 @@ function toOwnerOrder(order: any): Order {
     restaurantName: String(order.restaurantName ?? order.restaurant_name ?? ""),
     restaurantId: Number(order.restaurantId ?? order.restaurant_id ?? 0),
     status: (order.status === "accepted" ? "accepted" : order.status === "completed" ? "completed" : "pending") as Order["status"],
+  };
+}
+
+function ownerOrderToBrowserOrder(o: Order): BrowserOrder {
+  return {
+    id: o.id,
+    customerName: o.customerName,
+    customerPhone: o.customerPhone,
+    customerAddress: o.customerAddress ?? undefined,
+    items: o.items,
+    itemAmount: o.itemAmount,
+    total: o.total,
+    timestamp: o.timestamp,
+    restaurantName: o.restaurantName,
+    restaurantId: o.restaurantId,
+    status: o.status,
+    driver: o.driver ?? null,
+    paymentId: o.paymentId ?? null,
   };
 }
 
@@ -324,7 +342,11 @@ export default function OwnerRestaurantOrdersPage() {
 
         ordersRef.current = nextOrders;
         setOrders(nextOrders);
-        saveBrowserOrders(nextOrders);
+        try {
+          saveBrowserOrders(nextOrders.map(ownerOrderToBrowserOrder));
+        } catch (e) {
+          // ignore storage errors
+        }
         setLastOrderCount(nextOrders.length);
         lastOrderCountRef.current = nextOrders.length;
 
@@ -362,7 +384,9 @@ export default function OwnerRestaurantOrdersPage() {
     setOrders((prev) => {
       const next = prev.map((order) => (order.id === orderId ? { ...order, status: "accepted" } : order));
       ordersRef.current = next;
-      saveBrowserOrders(next);
+      try {
+        saveBrowserOrders(next.map(ownerOrderToBrowserOrder));
+      } catch (e) {}
       try {
         localStorage.setItem(ordersStorageKey, JSON.stringify(next));
       } catch {}
@@ -384,7 +408,9 @@ export default function OwnerRestaurantOrdersPage() {
     setOrders((prev) => {
       const next = prev.filter((order) => order.id !== orderId);
       ordersRef.current = next;
-      saveBrowserOrders(next);
+      try {
+        saveBrowserOrders(next.map(ownerOrderToBrowserOrder));
+      } catch (e) {}
       try {
         localStorage.setItem(ordersStorageKey, JSON.stringify(next));
       } catch {}
