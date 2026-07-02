@@ -1,272 +1,220 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import styles from "./Hero.module.css";
+
+const slides = [
+  {
+    eyebrow: "FRESH PICKS • DAILY DELIVERY",
+    title: "Freshness delivered to your doorstep.",
+    description:
+      "Shop colourful, hand-picked fruits for everyday snacking and family meals.",
+    buttonLabel: "Shop fresh fruits",
+    href: "/fruits",
+    images: [
+      { src: "/fruits/Mango.jpg", alt: "Fresh mangoes" },
+      { src: "/fruits/Strawberry.jpg", alt: "Fresh strawberries" },
+      { src: "/fruits/Watermelon.jpg", alt: "Fresh watermelon" },
+    ],
+    offer: "Fresh today",
+    background:
+      "linear-gradient(115deg, #095c45 0%, #0e8f62 55%, #8bd450 100%)",
+  },
+  {
+    eyebrow: "HOT, TASTY & READY TO ORDER",
+    title: "Your cravings just found a shortcut.",
+    description:
+      "From momos to street-food favourites, discover something delicious in a few taps.",
+    buttonLabel: "Explore food",
+    href: "/food",
+    images: [
+      { src: "/food/pannermomo.jpg", alt: "A plate of paneer momos" },
+      { src: "/food/chillipotato.jpg", alt: "A plate of chilli potato" },
+      { src: "/food/Manchurian.jpg", alt: "A plate of Manchurian" },
+    ],
+    offer: "Order now",
+    background:
+      "linear-gradient(115deg, #8d220d 0%, #e34b17 54%, #ffb326 100%)",
+  },
+  {
+    eyebrow: "CAR RENTAL • 24 HOURS",
+    title: "A comfortable car for every journey.",
+    description:
+      "Choose from reliable hatchbacks and SUVs for family trips, business travel, and daily plans.",
+    buttonLabel: "Rent a car",
+    href: "/car",
+    images: [
+      {
+        src: "/cars/baleno-delta-petrol-cng.jpg",
+        alt: "Baleno rental car",
+      },
+      { src: "/cars/creta-petrol.jpg", alt: "Creta rental car" },
+      { src: "/cars/exter-cng.jpg", alt: "Exter rental car" },
+    ],
+    offer: "From ₹3000",
+    background:
+      "linear-gradient(115deg, #182235 0%, #33466b 54%, #d4872b 100%)",
+  },
+  {
+    eyebrow: "BIKE RENTAL • 24 HOURS",
+    title: "A ready ride for wherever today takes you.",
+    description:
+      "Choose an affordable bike, book on WhatsApp, and enjoy the freedom of the road.",
+    buttonLabel: "Rent a bike",
+    href: "/bike",
+    images: [
+      { src: "/bikes/PULSERNS200.jpg", alt: "Pulsar NS 200 rental bike" },
+      { src: "/bikes/scooty.jpg", alt: "Scooty available for rent" },
+      { src: "/bikes/passion-pro.jpg", alt: "Passion Pro rental bike" },
+    ],
+    offer: "From ₹450",
+    background:
+      "linear-gradient(115deg, #14213d 0%, #2555a6 55%, #29b6f6 100%)",
+  },
+  {
+    eyebrow: "CELEBRATE EVERY LITTLE MOMENT",
+    title: "Sweet cakes for your happiest occasions.",
+    description:
+      "Pick a classic flavour for birthdays, surprises, and the days that deserve a treat.",
+    buttonLabel: "Browse cakes",
+    href: "/cakes",
+    images: [
+      { src: "/cakes/chocolate.jpg", alt: "Chocolate celebration cake" },
+      { src: "/cakes/redvelvet.jpg", alt: "Red velvet celebration cake" },
+      { src: "/cakes/vanilla.jpg", alt: "Vanilla celebration cake" },
+    ],
+    offer: "Made with love",
+    background:
+      "linear-gradient(115deg, #562044 0%, #a73871 54%, #f27faf 100%)",
+  },
+];
+
+const AUTOPLAY_DELAY = 5000;
 
 export default function HeroBanner() {
-  const [hoveredButton, setHoveredButton] = useState(false);
+  const [activeSlide, setActiveSlide] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+  const slide = slides[activeSlide];
+
+  useEffect(() => {
+    const prefersReducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+
+    if (isPaused || prefersReducedMotion) return;
+
+    const interval = window.setInterval(() => {
+      setActiveSlide((current) => (current + 1) % slides.length);
+    }, AUTOPLAY_DELAY);
+
+    return () => window.clearInterval(interval);
+  }, [isPaused]);
+
+  const showPrevious = () => {
+    setActiveSlide((current) => (current - 1 + slides.length) % slides.length);
+  };
+
+  const showNext = () => {
+    setActiveSlide((current) => (current + 1) % slides.length);
+  };
 
   return (
-    <section style={{
-      position: "relative",
-      minHeight: "600px",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      overflow: "hidden",
-      background: "linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)",
-      padding: "80px 24px",
-    }}>
-      {/* Animated background elements */}
-      <div style={{
-        position: "absolute",
-        width: "600px",
-        height: "600px",
-        borderRadius: "50%",
-        background: "rgba(255, 255, 255, 0.1)",
-        top: "-200px",
-        right: "-200px",
-        animation: "float 8s ease-in-out infinite",
-      }} />
-      <div style={{
-        position: "absolute",
-        width: "400px",
-        height: "400px",
-        borderRadius: "50%",
-        background: "rgba(255, 255, 255, 0.08)",
-        bottom: "-150px",
-        left: "-150px",
-        animation: "float 6s ease-in-out infinite",
-        animationDelay: "1s",
-      }} />
-      <div style={{
-        position: "absolute",
-        width: "300px",
-        height: "300px",
-        borderRadius: "50%",
-        background: "rgba(255, 255, 255, 0.06)",
-        top: "50%",
-        left: "10%",
-        animation: "float 7s ease-in-out infinite",
-        animationDelay: "2s",
-      }} />
+    <section
+      className={styles.carousel}
+      aria-roledescription="carousel"
+      aria-label="Quick Mart offers"
+      tabIndex={0}
+      onMouseEnter={() => setIsPaused(true)}
+      onMouseLeave={() => setIsPaused(false)}
+      onFocusCapture={() => setIsPaused(true)}
+      onBlurCapture={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) {
+          setIsPaused(false);
+        }
+      }}
+      onKeyDown={(event) => {
+        if (event.key === "ArrowLeft") showPrevious();
+        if (event.key === "ArrowRight") showNext();
+      }}
+    >
+      <div className={styles.track}>
+        <article
+          className={styles.slide}
+          style={{ background: slide.background }}
+          aria-roledescription="slide"
+          aria-label={`${activeSlide + 1} of ${slides.length}`}
+          key={slide.title}
+        >
+          <div className={styles.glowOne} />
+          <div className={styles.glowTwo} />
 
-      {/* Content */}
-      <div style={{
-        maxWidth: "1200px",
-        margin: "0 auto",
-        textAlign: "center",
-        position: "relative",
-        zIndex: 1,
-      }}>
-        {/* Small badge */}
-        <div style={{
-          display: "inline-block",
-          background: "rgba(255, 255, 255, 0.2)",
-          padding: "8px 20px",
-          borderRadius: "50px",
-          marginBottom: "24px",
-          backdropFilter: "blur(10px)",
-          border: "1px solid rgba(255, 255, 255, 0.3)",
-          animation: "fadeInDown 1s ease",
-        }}>
-          <span style={{
-            color: "white",
-            fontSize: "14px",
-            fontWeight: "700",
-            letterSpacing: "1px",
-          }}>
-            🎉 FREE DELIVERY ON ORDERS ABOVE ₹199
-          </span>
-        </div>
+          <div className={styles.content}>
+            <p className={styles.eyebrow}>{slide.eyebrow}</p>
+            <h1>{slide.title}</h1>
+            <p className={styles.description}>{slide.description}</p>
+            <Link className={styles.cta} href={slide.href}>
+              {slide.buttonLabel}
+              <span aria-hidden="true">→</span>
+            </Link>
+          </div>
 
-        {/* Main heading */}
-        <h1 style={{
-          fontSize: "72px",
-          fontWeight: "900",
-          color: "white",
-          marginBottom: "24px",
-          lineHeight: "1.2",
-          animation: "fadeInUp 1s ease",
-          textShadow: "0 4px 20px rgba(0, 0, 0, 0.2)",
-        }}>
-          Welcome to <br />
-          <span style={{
-            background: "linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%)",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-            backgroundClip: "text",
-          }}>
-            QUICK MART
-          </span>
-        </h1>
-
-        {/* Subheading */}
-        <p style={{
-          fontSize: "24px",
-          color: "rgba(255, 255, 255, 0.95)",
-          marginBottom: "48px",
-          maxWidth: "800px",
-          margin: "0 auto 48px",
-          lineHeight: "1.6",
-          fontWeight: "500",
-          animation: "fadeInUp 1.2s ease",
-        }}>
-          Your Premium Destination for Fresh Fruits & Luxury Groceries
-        </p>
-
-        {/* Buttons */}
-        <div style={{
-          display: "flex",
-          gap: "20px",
-          justifyContent: "center",
-          flexWrap: "wrap",
-          animation: "fadeInUp 1.4s ease",
-        }}>
-          {/* Primary button */}
-          <Link href="/#categories">
-            <button
-              onMouseEnter={() => setHoveredButton(true)}
-              onMouseLeave={() => setHoveredButton(false)}
-              style={{
-                background: "white",
-                color: "#667eea",
-                padding: "18px 48px",
-                borderRadius: "50px",
-                border: "none",
-                fontSize: "18px",
-                fontWeight: "800",
-                cursor: "pointer",
-                boxShadow: hoveredButton 
-                  ? "0 12px 35px rgba(0, 0, 0, 0.3)"
-                  : "0 8px 25px rgba(0, 0, 0, 0.2)",
-                transition: "all 0.3s ease",
-                transform: hoveredButton ? "translateY(-4px) scale(1.05)" : "translateY(0) scale(1)",
-                display: "flex",
-                alignItems: "center",
-                gap: "12px",
-              }}
-            >
-              <span style={{ fontSize: "24px" }}>🛍️</span>
-              Explore Collection
-            </button>
-          </Link>
-
-          {/* Secondary button */}
-          <Link href="/fruits">
-            <button style={{
-              background: "rgba(255, 255, 255, 0.15)",
-              color: "white",
-              padding: "18px 48px",
-              borderRadius: "50px",
-              border: "2px solid rgba(255, 255, 255, 0.4)",
-              fontSize: "18px",
-              fontWeight: "800",
-              cursor: "pointer",
-              backdropFilter: "blur(10px)",
-              transition: "all 0.3s ease",
-              display: "flex",
-              alignItems: "center",
-              gap: "12px",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "rgba(255, 255, 255, 0.25)";
-              e.currentTarget.style.transform = "translateY(-4px)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "rgba(255, 255, 255, 0.15)";
-              e.currentTarget.style.transform = "translateY(0)";
-            }}>
-              <span style={{ fontSize: "24px" }}>🍎</span>
-              Shop Fresh Fruits
-            </button>
-          </Link>
-        </div>
-
-        {/* Trust indicators */}
-        <div style={{
-          marginTop: "60px",
-          display: "flex",
-          justifyContent: "center",
-          gap: "48px",
-          flexWrap: "wrap",
-          animation: "fadeInUp 1.6s ease",
-        }}>
-          {[
-            { icon: "✓", text: "100% Fresh" },
-            { icon: "🚚", text: "Fast Delivery" },
-            { icon: "💰", text: "Best Price" },
-            { icon: "⭐", text: "50+ Orders" },
-          ].map((item, index) => (
-            <div key={index} style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              color: "white",
-            }}>
-              <div style={{
-                width: "40px",
-                height: "40px",
-                borderRadius: "50%",
-                background: "rgba(255, 255, 255, 0.2)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: "18px",
-                fontWeight: "800",
-                backdropFilter: "blur(10px)",
-              }}>
-                {item.icon}
+          <div className={styles.visual} aria-hidden="true">
+            <div className={styles.imageHalo} />
+            {slide.images.map((image, imageIndex) => (
+              <div
+                className={`${styles.imageCard} ${
+                  styles[`imageCard${imageIndex + 1}`]
+                }`}
+                key={image.src}
+              >
+                <Image
+                  src={image.src}
+                  alt={image.alt}
+                  fill
+                  sizes="(max-width: 720px) 45vw, 22vw"
+                  className={styles.productImage}
+                  priority={activeSlide === 0 && imageIndex === 0}
+                />
               </div>
-              <span style={{ fontWeight: "700", fontSize: "16px" }}>
-                {item.text}
-              </span>
-            </div>
-          ))}
-        </div>
+            ))}
+            <span className={styles.offer}>{slide.offer}</span>
+          </div>
+        </article>
       </div>
 
-      <style jsx>{`
-        @keyframes fadeInUp {
-          from {
-            opacity: 0;
-            transform: translateY(30px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        
-        @keyframes fadeInDown {
-          from {
-            opacity: 0;
-            transform: translateY(-20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        
-        @keyframes float {
-          0%, 100% {
-            transform: translateY(0) rotate(0deg);
-          }
-          50% {
-            transform: translateY(-30px) rotate(5deg);
-          }
-        }
+      <button
+        className={`${styles.arrow} ${styles.previous}`}
+        type="button"
+        aria-label="Show previous offer"
+        onClick={showPrevious}
+      >
+        ‹
+      </button>
+      <button
+        className={`${styles.arrow} ${styles.next}`}
+        type="button"
+        aria-label="Show next offer"
+        onClick={showNext}
+      >
+        ›
+      </button>
 
-        @media (max-width: 768px) {
-          h1 {
-            font-size: 48px !important;
-          }
-          p {
-            font-size: 18px !important;
-          }
-        }
-      `}</style>
+      <div className={styles.dots} aria-label="Choose an offer">
+        {slides.map((slide, index) => (
+          <button
+            key={slide.title}
+            type="button"
+            className={`${styles.dot} ${
+              index === activeSlide ? styles.activeDot : ""
+            }`}
+            aria-label={`Show offer ${index + 1}: ${slide.buttonLabel}`}
+            aria-current={index === activeSlide ? "true" : undefined}
+            onClick={() => setActiveSlide(index)}
+          />
+        ))}
+      </div>
     </section>
   );
 }
