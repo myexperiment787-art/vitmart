@@ -4,6 +4,25 @@ import { formatOrderDate, postOrderToSheet } from "../../googleSheetHelper";
 import { ensureSeedUsers, findUserByPhone } from "@/src/lib/auth";
 import { createOrder } from "@/src/lib/orders";
 
+type CartItem = {
+  name: string;
+  quantity: number;
+  price: number;
+};
+
+type VerifyOrderPayload = {
+  razorpay_order_id?: string;
+  razorpay_payment_id?: string;
+  razorpay_signature?: string;
+  cartItems?: CartItem[];
+  total?: number;
+  customerName?: string;
+  customerPhone?: string;
+  customerAddress?: string;
+  restaurantName?: string;
+  restaurantId?: number;
+};
+
 export async function POST(req: NextRequest) {
   try {
     const {
@@ -17,7 +36,10 @@ export async function POST(req: NextRequest) {
       customerAddress,
       restaurantName,
       restaurantId,
-    } = await req.json();
+    } = (await req.json()) as VerifyOrderPayload;
+
+    const safeCartItems = Array.isArray(cartItems) ? cartItems : [];
+    const safeTotal = Number(total ?? 0);
 
     await ensureSeedUsers();
     // Don't require an authenticated session here because Razorpay handler may not send cookies
@@ -32,15 +54,12 @@ export async function POST(req: NextRequest) {
 
     // ✅ Step 1: Verify Razorpay signature
     const secret = process.env.RAZORPAY_KEY_SECRET;
-    console.log("[order/verify] Razorpay secret present=", Boolean(secret));
     if (!secret) {
       console.error("[order/verify] Missing RAZORPAY_KEY_SECRET env var");
       return NextResponse.json({ success: false, error: "Payment gateway not configured (missing secret)" }, { status: 500 });
     }
 
     const expectedSignature = crypto.createHmac("sha256", secret).update(`${razorpay_order_id}|${razorpay_payment_id}`).digest("hex");
-    console.log("[order/verify] expectedSignature=", expectedSignature);
-    console.log("[order/verify] receivedSignature=", razorpay_signature);
 
     if (expectedSignature !== razorpay_signature) {
       console.error("[order/verify] Signature mismatch");
@@ -49,14 +68,14 @@ export async function POST(req: NextRequest) {
 
     const ownerPhone = process.env.WHATSAPP_NUMBER || "919630741753";
 
-    const itemsText = cartItems
-      .map((item: { name: string; quantity: number; price: number }) =>
+    const itemsText = safeCartItems
+      .map((item) =>
         `• ${item.name} × ${item.quantity} = ₹${item.price * item.quantity}`
       )
       .join("\n");
 
-    const itemAmount = cartItems.reduce(
-      (sum: number, item: { price: number; quantity: number }) => sum + item.price * item.quantity,
+    const itemAmount = safeCartItems.reduce(
+      (sum, item) => sum + item.price * item.quantity,
       0
     );
 
@@ -65,18 +84,18 @@ export async function POST(req: NextRequest) {
       customerName,
       customerPhone,
       customerAddress,
-      items: cartItems
-        .map((item: any) => `${item.name} ×${item.quantity}`)
+        items: safeCartItems
+        .map((item) => `${item.name} ×${item.quantity}`)
         .join(", "),
       itemAmount,
-      total,
+      total: safeTotal,
       paymentId: razorpay_payment_id,
       restaurantName: restaurantName || "Unknown Restaurant",
       restaurantId: restaurantId || 0,
     };
 
     let savedOrderId: string | null = null;
-    let savedOrder: any = null;
+    let savedOrder: Awaited<ReturnType<typeof createOrder>> | null = null;
     try {
       const order = await createOrder({
         id: `order_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
@@ -86,7 +105,7 @@ export async function POST(req: NextRequest) {
         customerAddress: customerAddress || null,
         items: orderForOwner.items,
         itemAmount,
-        total,
+        total: safeTotal,
         paymentId: razorpay_payment_id,
         timestamp: Date.now(),
         restaurantName: restaurantName || "Unknown Restaurant",
@@ -105,11 +124,11 @@ export async function POST(req: NextRequest) {
       await postOrderToSheet(restaurantId, {
         orderDate: formatOrderDate(savedOrder?.timestamp ?? Date.now()),
         customerName: customerName || "Not provided",
-        items: cartItems
-          .map((item: any) => `${item.name} ×${item.quantity}`)
+      items: safeCartItems
+          .map((item) => `${item.name} ×${item.quantity}`)
           .join(", "),
         deliveryAddress: customerAddress || "Not provided",
-        totalAmount: total,
+        totalAmount: safeTotal,
         orderId: savedOrderId || undefined,
       });
     }
@@ -123,35 +142,35 @@ export async function POST(req: NextRequest) {
       `👤 Customer: ${customerName || "Not provided"}\n` +
       `📱 Phone: +91 ${customerPhone || "Not provided"}\n\n` +
       `🛒 *Order:*\n${itemsText}\n\n` +
-      `💰 *Total Paid: ₹${total}*\n` +
+      `💰 *Total Paid: ₹${safeTotal}*\n` +
       `💳 Payment ID: \`${razorpay_payment_id}\`\n\n` +
       `✅ *PAYMENT CONFIRMED*`;
 
     let telegramSent = false;
     // ✅ Save to Google Sheets
-const sheetUrl = process.env.GOOGLE_SHEET_URL;
-if (sheetUrl) {
-  try {
-    const itemsText = cartItems
-      .map((item: any) => `${item.name} ×${item.quantity}`)
-      .join(", ");
+    const sheetUrl = process.env.GOOGLE_SHEET_URL;
+    if (sheetUrl) {
+      try {
+        const itemsText = safeCartItems
+          .map((item) => `${item.name} ×${item.quantity}`)
+          .join(", ");
 
-    await fetch(sheetUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        customerName,
-        customerPhone,
-        items: itemsText,
-        total,
-        paymentId: razorpay_payment_id,
-      }),
-    });
-    console.log("✅ Order saved to Google Sheets");
-  } catch (e) {
-    console.error("Google Sheets error:", e);
-  }
-}
+        await fetch(sheetUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            customerName,
+            customerPhone,
+            items: itemsText,
+            total: safeTotal,
+            paymentId: razorpay_payment_id,
+          }),
+        });
+        console.log("✅ Order saved to Google Sheets");
+      } catch (e) {
+        console.error("Google Sheets error:", e);
+      }
+    }
     // Only send Telegram notification for FOOD orders, NOT restaurant orders
     if (telegramToken && telegramChatId && (!restaurantId || restaurantId === 0)) {
       try {
@@ -183,7 +202,7 @@ if (sheetUrl) {
       `🎉 *Order Confirmed! Thank you, ${customerName || "friend"}!*\n\n` +
       `Your order at *Quick Mart* is confirmed 🛒\n\n` +
       `🛒 *Your Order:*\n${itemsText}\n\n` +
-      `💰 Total Paid: ₹${total}\n` +
+      `💰 Total Paid: ₹${safeTotal}\n` +
       `🚚 Delivery to your hostel shortly!\n\n` +
       `For help: +91 ${ownerPhone.replace(/^91/, "")}`;
 
@@ -197,7 +216,7 @@ if (sheetUrl) {
       `👤 ${customerName || "Unknown"}\n` +
       `📱 +91 ${customerPhone || "N/A"}\n\n` +
       `🛒 ${itemsText}\n\n` +
-      `💰 Total: ₹${total} ✅ PAID\n` +
+      `💰 Total: ₹${safeTotal} ✅ PAID\n` +
       `💳 ${razorpay_payment_id}`;
 
     const ownerWhatsappUrl = `https://wa.me/${ownerPhone}?text=${encodeURIComponent(ownerWaMessage)}`;
@@ -212,7 +231,7 @@ if (sheetUrl) {
       savedOrder,
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("❌ Verify error:", error);
     return NextResponse.json({ success: false, error: "Verification failed" }, { status: 500 });
   }

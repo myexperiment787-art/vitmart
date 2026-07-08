@@ -18,7 +18,20 @@ type CustomerOrder = {
   customerAddress?: string | null;
 };
 
-function toCustomerOrder(order: any): CustomerOrder {
+type CustomerOrderInput = {
+  id?: unknown;
+  restaurantName?: unknown;
+  restaurant_name?: unknown;
+  items?: unknown;
+  total?: unknown;
+  timestamp?: unknown;
+  status?: unknown;
+  driver?: unknown;
+  customerAddress?: unknown;
+  customer_address?: unknown;
+};
+
+function toCustomerOrder(order: CustomerOrderInput): CustomerOrder {
   return {
     id: String(order.id ?? ""),
     restaurantName: String(order.restaurantName ?? order.restaurant_name ?? ""),
@@ -26,8 +39,13 @@ function toCustomerOrder(order: any): CustomerOrder {
     total: Number(order.total ?? 0),
     timestamp: Number(order.timestamp ?? Date.now()),
     status: String(order.status ?? "pending"),
-    driver: order.driver ?? null,
-    customerAddress: order.customerAddress ?? order.customer_address ?? null,
+    driver: typeof order.driver === "string" ? order.driver : null,
+    customerAddress:
+      typeof order.customerAddress === "string"
+        ? order.customerAddress
+        : typeof order.customer_address === "string"
+        ? order.customer_address
+        : null,
   };
 }
 

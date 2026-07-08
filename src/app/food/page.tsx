@@ -5,7 +5,20 @@ import { useCart } from "../../context/CartContext";
 import { saveBrowserOrder } from "../../lib/orderBrowserCache";
 import { isItemListedOutOfStock } from "../../lib/itemAvailability";
 
-declare global { interface Window { Razorpay: any; } }
+type RazorpayResponse = {
+  razorpay_payment_id?: string;
+  razorpay_order_id?: string;
+  razorpay_signature?: string;
+};
+
+type FoodOrderSuccess = {
+  telegramSent: boolean;
+  ownerWhatsappUrl: string;
+  customerWhatsappUrl: string | null;
+  customerPhone: string;
+  customerName: string;
+  total: number;
+};
 
 // Items with single price
 const singleItems = [
@@ -32,7 +45,7 @@ export default function FoodPage() {
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [showForm, setShowForm] = useState(false);
-  const [orderSuccess, setOrderSuccess] = useState<any>(null);
+  const [orderSuccess, setOrderSuccess] = useState<FoodOrderSuccess | null>(null);
   const [shopOpen, setShopOpen] = useState<boolean | null>(null);
   const [outOfStockItems, setOutOfStockItems] = useState<string[]>([]);
 
@@ -135,7 +148,7 @@ export default function FoodPage() {
         order_id: data.order.id,
         prefill: { name: customerName, contact: `91${customerPhone}` },
         theme: { color: "#ff9a56" },
-        handler: (response: any) => {
+        handler: (response: RazorpayResponse) => {
           setOrderSuccess({ telegramSent: false, ownerWhatsappUrl: "", customerWhatsappUrl: null, customerPhone, customerName, total });
           clearCart("food");
           setCustomerName("");

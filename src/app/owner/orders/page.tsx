@@ -133,7 +133,7 @@ export default function OwnerLoginPage() {
             }}
           >
             <p style={{ margin: "0", fontSize: "14px", color: "#166534", fontWeight: 700 }}>
-              ℹ️ Each restaurant owner only sees their own orders. No one can access other restaurants' data.
+              ℹ️ Each restaurant owner only sees their own orders. No one can access other restaurants&apos; data.
             </p>
           </div>
         </div>

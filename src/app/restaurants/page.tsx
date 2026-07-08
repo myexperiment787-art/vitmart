@@ -6,11 +6,11 @@ import { getCustomerSession, logout as logoutSession } from "../../lib/customerA
 import { saveBrowserOrder } from "../../lib/orderBrowserCache";
 import { isItemListedOutOfStock } from "../../lib/itemAvailability";
 
-declare global {
-  interface Window {
-    Razorpay: any;
-  }
-}
+type RazorpayResponse = {
+  razorpay_payment_id?: string;
+  razorpay_order_id?: string;
+  razorpay_signature?: string;
+};
 
 // ============================================================
 // 🍽️ ADD YOUR RESTAURANTS & MENU ITEMS HERE
@@ -29,7 +29,7 @@ const restaurants = [
     color: "#667eea",
     image: "/food/vegmomo.jpg",
     menu: [
-      { name: "Veg Momo (8 pcs)", price: 1, desc: "Steamed dumplings with fresh veggies", available: true },
+      { name: "Veg Momo (8 pcs)", price: 60, desc: "Steamed dumplings with fresh veggies", available: true },
       { name: "Fried Momo (8 pcs)", price: 70, desc: "Crispy fried momos with spicy chutney", available: true },
       { name: "Paneer Momo (8 pcs)", price: 80, desc: "Juicy momos stuffed with spiced paneer", available: true },
       { name: "Tandoori Momo (8 pcs)", price: 90, desc: "Grilled momos with tandoori spices", available: true },
@@ -101,8 +101,6 @@ const restaurants = [
     ],
   },
 ];
-
-type CartItem = { name: string; price: number; image: string; quantity: number };
 
 const pageShellStyle: React.CSSProperties = {
   maxWidth: "1320px",
@@ -288,7 +286,7 @@ export default function RestaurantsPage() {
           contact: `91${customerPhone.replace(/\D/g, "")}`,
         },
         theme: { color: selectedRestaurant.color },
-        handler: (response: any) => {
+        handler: (response: RazorpayResponse) => {
           setOrderSuccess({ total, customerName });
           setCustomerAddress("");
           setShowForm(false);

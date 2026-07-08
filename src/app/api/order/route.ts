@@ -20,10 +20,10 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, order });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("❌ Razorpay order error:", error);
     return NextResponse.json(
-      { success: false, error: error?.message || "Order creation failed" },
+      { success: false, error: error instanceof Error ? error.message : "Order creation failed" },
       { status: 500 }
     );
   }

@@ -33,12 +33,6 @@ export default function DeliveryOrdersPage() {
     completed: 3,
   };
 
-  const resolveStatus = (backendStatus: string | undefined, overrideStatus: string | undefined) => {
-    const backend = backendStatus || "pending";
-    const override = overrideStatus || "pending";
-    return overrideStatus ? override : backend;
-  };
-
   const resolveHighestStatus = (...statuses: Array<string | undefined>) => {
     return statuses.reduce((highest, status) => {
       const next = (status || "pending") as keyof typeof statusRank;
@@ -64,15 +58,6 @@ export default function DeliveryOrdersPage() {
       current[orderId] = status;
       localStorage.setItem(statusOverridesKey, JSON.stringify(current));
     } catch {}
-  };
-
-  const mergeStatusOverrides = (list: Order[]) => {
-    const overrides = readStatusOverrides();
-    if (Object.keys(overrides).length === 0) return list;
-    return list.map((order) => {
-      const mergedStatus = resolveStatus(order.status, overrides[order.id]);
-      return mergedStatus === order.status ? order : { ...order, status: mergedStatus };
-    });
   };
 
   const mergeWithCurrentState = (backendOrders: Order[]) => {
@@ -144,34 +129,6 @@ export default function DeliveryOrdersPage() {
         } catch {
           ordersRef.current = [];
           setOrders([]);
-        }
-      }
-
-      // Auto-assign unassigned orders to default driver 'raju'
-      const toAssign = sorted.filter((o: Order) => !o.driver && o.status !== "completed");
-      if (toAssign.length > 0) {
-        try {
-          await Promise.all(toAssign.map((o) =>
-            fetch(`/api/owner/orders`, {
-              method: "PATCH",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ orderId: o.id, assignDriver: "raju" }),
-            })
-          ));
-          // reload once after assignments
-          const r2 = await fetch(`/api/owner/orders`);
-          const d2 = await r2.json();
-          const all2: Order[] = d2.orders || [];
-          const sorted2 = mergeWithCurrentState(all2.sort((a, b) => b.timestamp - a.timestamp));
-          if (sorted2.length > 0) {
-            ordersRef.current = sorted2;
-            setOrders(sorted2);
-            try {
-              localStorage.setItem(ordersCacheKey, JSON.stringify(sorted2));
-            } catch {}
-          }
-        } catch (err) {
-          console.error("Failed to auto-assign drivers:", err);
         }
       }
     } catch (e) {
@@ -301,6 +258,15 @@ export default function DeliveryOrdersPage() {
 
   return (
     <div style={{ maxWidth: 1100, margin: "28px auto", padding: 18, background: "linear-gradient(180deg, #ffffff 0%, #fbfdff 100%)" }}>
+      {toasts.length > 0 ? (
+        <div style={{ position: "fixed", right: 18, bottom: 18, display: "grid", gap: 8, zIndex: 2000 }}>
+          {toasts.map((toast) => (
+            <div key={toast.id} style={{ background: "#0f172a", color: "white", borderRadius: 10, padding: "10px 14px", fontWeight: 800, boxShadow: "0 10px 24px rgba(15,23,42,0.22)" }}>
+              {toast.text}
+            </div>
+          ))}
+        </div>
+      ) : null}
       <style>{`
         .delivery-grid { display: grid; gap: 20px; grid-template-columns: 1fr 360px; }
         @media (max-width: 900px) { .delivery-grid { grid-template-columns: 1fr; } .aside { position: static; width: 100%; }
@@ -325,7 +291,7 @@ export default function DeliveryOrdersPage() {
         </div>
 
         <div style={{ textAlign: "right" }}>
-          <div style={{ fontSize: 13, color: "#94a3b8" }}>Today's deliveries</div>
+          <div style={{ fontSize: 13, color: "#94a3b8" }}>Today&apos;s deliveries</div>
           <div style={{ fontSize: 18, fontWeight: 900 }}>{todayEarnings().count} • ₹{todayEarnings().amount}</div>
           <div style={{ marginTop: 8 }}>
             <label style={{ fontSize: 12, color: "#6b7280", marginRight: 8 }}>Year:</label>

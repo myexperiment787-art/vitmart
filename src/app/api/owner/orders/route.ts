@@ -1,7 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ensureSeedUsers } from "@/src/lib/auth";
 import { getOrderById, getOrdersByRestaurant, updateOrder } from "@/src/lib/orders";
+import type { AppOrder } from "@/src/lib/orders";
 import { formatOrderDate, postOrderToSheet } from "../../googleSheetHelper";
+
+type OwnerOrderRecord = Partial<AppOrder> & {
+  customerName?: string;
+  customerPhone?: string;
+  customerAddress?: string | null;
+  itemAmount?: number;
+  paymentId?: string | null;
+  restaurantName?: string;
+  restaurantId?: number;
+};
 
 export async function GET(req: NextRequest) {
   try {
@@ -11,7 +22,7 @@ export async function GET(req: NextRequest) {
     const orders = await getOrdersByRestaurant(restaurantId ? parseInt(restaurantId) : undefined);
 
     // Map orders to camelCase keys for client consumption
-    const mapped = (orders || []).map((o: any) => ({
+    const mapped = (orders || []).map((o: OwnerOrderRecord) => ({
       id: o.id,
       customerName: o.customer_name ?? o.customerName ?? "",
       customerPhone: o.customer_phone ?? o.customerPhone ?? "",
@@ -28,13 +39,13 @@ export async function GET(req: NextRequest) {
     }));
 
     return NextResponse.json({ success: true, orders: mapped });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error fetching orders:", error);
     return NextResponse.json({ success: false, error: "Failed to fetch orders" }, { status: 500 });
   }
 }
 
-export async function POST(req: NextRequest) {
+export async function POST() {
   return NextResponse.json({ success: false, error: "Direct owner order creation is disabled" }, { status: 405 });
 }
 
@@ -72,7 +83,7 @@ export async function PATCH(req: NextRequest) {
     }
 
     return NextResponse.json({ success: true });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error updating order:", error);
     return NextResponse.json({ success: false, error: "Failed to update order" }, { status: 500 });
   }

@@ -1,7 +1,7 @@
 "use client";
 import { useRef, useState, useEffect } from "react";
 import { useParams } from "next/navigation";
-import { mergeBrowserOrders, readBrowserOrders, saveBrowserOrders, BrowserOrder } from "@/src/lib/orderBrowserCache";
+import { mergeBrowserOrders, saveBrowserOrders, BrowserOrder } from "@/src/lib/orderBrowserCache";
 import { isItemListedOutOfStock, normalizeMenuItemName } from "@/src/lib/itemAvailability";
 
 const restaurantMenuItems: Record<number, string[]> = {
@@ -16,7 +16,7 @@ type Order = {
   customerName: string;
   customerPhone: string;
   customerAddress?: string;
-  driver?: string;
+  driver?: string | null;
   items: string;
   itemAmount?: number;
   total: number;
@@ -27,15 +27,51 @@ type Order = {
   status: "pending" | "accepted" | "picked" | "completed";
 };
 
-function toOwnerOrder(order: any): Order {
+type OwnerOrderInput = {
+  id?: unknown;
+  customerName?: unknown;
+  customer_name?: unknown;
+  customerPhone?: unknown;
+  customer_phone?: unknown;
+  customerAddress?: unknown;
+  customer_address?: unknown;
+  driver?: unknown;
+  items?: unknown;
+  itemAmount?: unknown;
+  item_amount?: unknown;
+  total?: unknown;
+  paymentId?: unknown;
+  payment_id?: unknown;
+  timestamp?: unknown;
+  restaurantName?: unknown;
+  restaurant_name?: unknown;
+  restaurantId?: unknown;
+  restaurant_id?: unknown;
+  status?: unknown;
+};
+
+type WindowWithWebkitAudio = Window &
+  typeof globalThis & {
+    webkitAudioContext?: typeof AudioContext;
+  };
+
+function optionalString(value: unknown) {
+  return typeof value === "string" ? value : undefined;
+}
+
+function optionalNumber(value: unknown) {
+  return typeof value === "number" ? value : value == null ? undefined : Number(value);
+}
+
+function toOwnerOrder(order: OwnerOrderInput): Order {
   return {
     id: String(order.id ?? ""),
     customerName: String(order.customerName ?? order.customer_name ?? ""),
     customerPhone: String(order.customerPhone ?? order.customer_phone ?? ""),
-    customerAddress: order.customerAddress ?? order.customer_address ?? undefined,
-    driver: order.driver ?? null,
+    customerAddress: optionalString(order.customerAddress) ?? optionalString(order.customer_address),
+    driver: optionalString(order.driver) ?? null,
     items: String(order.items ?? ""),
-    itemAmount: order.itemAmount ?? order.item_amount ?? undefined,
+    itemAmount: optionalNumber(order.itemAmount) ?? optionalNumber(order.item_amount),
     total: Number(order.total ?? 0),
     paymentId: String(order.paymentId ?? order.payment_id ?? ""),
     timestamp: Number(order.timestamp ?? Date.now()),
@@ -101,7 +137,10 @@ export default function OwnerRestaurantOrdersPage() {
 
   const getAudioContext = () => {
     if (!audioContextRef.current) {
-      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      const AudioCtx = window.AudioContext || (window as WindowWithWebkitAudio).webkitAudioContext;
+      if (!AudioCtx) {
+        throw new Error("AudioContext is not supported in this browser.");
+      }
       audioContextRef.current = new AudioCtx();
     }
 
@@ -552,7 +591,7 @@ export default function OwnerRestaurantOrdersPage() {
                 📱 {restaurantName} - Keep this page open on your phone/tablet
               </p>
               <p style={{ margin: 0, fontSize: "13px", color: "#0c4a6e", lineHeight: "1.6" }}>
-                You will hear a ringtone when new orders arrive. Tap "Accept Order" to acknowledge you received it. Only you can see orders for {restaurantName}.
+                You will hear a ringtone when new orders arrive. Tap &quot;Accept Order&quot; to acknowledge you received it. Only you can see orders for {restaurantName}.
               </p>
             </div>
             <button
@@ -772,7 +811,7 @@ export default function OwnerRestaurantOrdersPage() {
             📦 {restaurantName} Orders
           </h1>
           <p style={{ fontSize: "13px", color: "#64748b", margin: 0 }}>
-            Only your restaurant's orders are visible here
+            Only your restaurant&apos;s orders are visible here
           </p>
         </div>
 

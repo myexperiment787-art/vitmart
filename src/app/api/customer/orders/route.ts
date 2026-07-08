@@ -3,7 +3,20 @@ import { ensureSeedUsers, getUserFromRequest } from "@/src/lib/auth";
 import { getOrdersByCustomer } from "@/src/lib/orders";
 import { isDatabaseConfigured } from "@/src/lib/db";
 
-function normalizeOrder(order: any) {
+type CustomerOrderRecord = {
+  id?: unknown;
+  restaurant_name?: unknown;
+  restaurantName?: unknown;
+  items?: unknown;
+  total?: unknown;
+  timestamp?: unknown;
+  status?: unknown;
+  driver?: unknown;
+  customer_address?: unknown;
+  customerAddress?: unknown;
+};
+
+function normalizeOrder(order: CustomerOrderRecord) {
   return {
     id: String(order.id ?? ""),
     restaurantName: String(order.restaurant_name ?? order.restaurantName ?? ""),
@@ -11,8 +24,13 @@ function normalizeOrder(order: any) {
     total: Number(order.total ?? 0),
     timestamp: Number(order.timestamp ?? Date.now()),
     status: String(order.status ?? "pending"),
-    driver: order.driver ?? undefined,
-    customerAddress: order.customer_address ?? order.customerAddress ?? undefined,
+    driver: typeof order.driver === "string" ? order.driver : undefined,
+    customerAddress:
+      typeof order.customer_address === "string"
+        ? order.customer_address
+        : typeof order.customerAddress === "string"
+        ? order.customerAddress
+        : undefined,
   };
 }
 

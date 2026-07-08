@@ -88,7 +88,12 @@ export async function getOrdersByCustomer(customerKey: string) {
     const user = users.find((u) => u.id === customerKey || u.phone === normalizedCustomerKey);
     const phone = user?.phone || normalizedCustomerKey || undefined;
     return readLocalOrders()
-      .filter((o) => o.customer_id === customerKey || o.customer_id === normalizedCustomerKey || (phone ? o.customer_phone === phone : false))
+      .filter((o) => {
+        const orderRecord = o as Record<string, unknown>;
+        const customerId = String(orderRecord.customer_id ?? orderRecord.customerId ?? "");
+        const customerPhone = String(orderRecord.customer_phone ?? orderRecord.customerPhone ?? "");
+        return customerId === customerKey || customerId === normalizedCustomerKey || (phone ? customerPhone === phone : false);
+      })
       .sort((a, b) => Number(b.timestamp) - Number(a.timestamp))
       .map((o) => normalizeLocalOrder(o));
   }
@@ -103,7 +108,10 @@ export async function getOrdersByCustomer(customerKey: string) {
 export async function getOrdersByRestaurant(restaurantId?: number) {
   if (!isDatabaseConfigured()) {
     return readLocalOrders()
-      .filter((o) => (restaurantId ? Number(o.restaurant_id) === restaurantId : true))
+      .filter((o) => {
+        const orderRecord = o as Record<string, unknown>;
+        return restaurantId ? Number(orderRecord.restaurant_id ?? orderRecord.restaurantId) === restaurantId : true;
+      })
       .sort((a, b) => Number(b.timestamp) - Number(a.timestamp))
       .map((o) => normalizeLocalOrder(o))
       .slice(0, 100);
@@ -153,21 +161,31 @@ export async function updateOrder(orderId: string, changes: { status?: string; d
   await query(`UPDATE app_orders SET ${fields.join(", ")} WHERE id = $${values.length}`, values);
 }
 
-function normalizeLocalOrder(order: Record<string, any>): AppOrder {
+function nullableString(value: unknown) {
+  if (value == null) return null;
+  return String(value);
+}
+
+function numberValue(value: unknown, fallback = 0) {
+  const parsed = Number(value ?? fallback);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function normalizeLocalOrder(order: Record<string, unknown>): AppOrder {
   return {
-    id: String(order.id),
-    customer_id: order.customer_id ?? null,
-    customer_name: String(order.customer_name ?? ""),
-    customer_phone: String(order.customer_phone ?? ""),
-    customer_address: order.customer_address ?? null,
+    id: String(order.id ?? ""),
+    customer_id: nullableString(order.customer_id ?? order.customerId),
+    customer_name: String(order.customer_name ?? order.customerName ?? ""),
+    customer_phone: String(order.customer_phone ?? order.customerPhone ?? ""),
+    customer_address: nullableString(order.customer_address ?? order.customerAddress),
     items: String(order.items ?? ""),
-    item_amount: Number(order.item_amount ?? 0),
-    total: Number(order.total ?? 0),
-    payment_id: order.payment_id ?? null,
-    timestamp: Number(order.timestamp ?? Date.now()),
-    restaurant_name: String(order.restaurant_name ?? ""),
-    restaurant_id: Number(order.restaurant_id ?? 0),
+    item_amount: numberValue(order.item_amount ?? order.itemAmount),
+    total: numberValue(order.total),
+    payment_id: nullableString(order.payment_id ?? order.paymentId),
+    timestamp: numberValue(order.timestamp, Date.now()),
+    restaurant_name: String(order.restaurant_name ?? order.restaurantName ?? ""),
+    restaurant_id: numberValue(order.restaurant_id ?? order.restaurantId),
     status: String(order.status ?? "pending"),
-    driver: order.driver ?? null,
+    driver: nullableString(order.driver),
   };
 }
