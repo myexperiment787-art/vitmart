@@ -4,6 +4,7 @@ import Navbar from "../../components/Navbar";
 import { useCart } from "../../context/CartContext";
 import { getCustomerSession, logout as logoutSession } from "../../lib/customerAuthClient";
 import { saveBrowserOrder } from "../../lib/orderBrowserCache";
+import { isItemListedOutOfStock } from "../../lib/itemAvailability";
 
 declare global {
   interface Window {
@@ -216,7 +217,7 @@ export default function RestaurantsPage() {
   const total = subTotal + delivery;
 
   const isMenuItemAvailable = (itemName: string, fallbackAvailable = true) => {
-    return fallbackAvailable && !outOfStockItems.includes(itemName);
+    return fallbackAvailable && !isItemListedOutOfStock(itemName, outOfStockItems);
   };
 
   const allRestaurantItems = useMemo(

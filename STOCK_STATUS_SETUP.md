@@ -37,29 +37,30 @@ This feature allows you to manage item availability directly from a Google Sheet
 function doGet() {
   const sheet = SpreadsheetApp.getActiveSheet();
   const data = sheet.getDataRange().getValues();
-  
-  // Get the header row (first row)
-  const headers = data[0];
-  
-  // Find the column index for "outOfStockItems"
-  const outOfStockIndex = headers.indexOf("outOfStockItems");
-  
-  // Extract out of stock items (skip header row)
   const outOfStockItems = [];
-  
-  if (outOfStockIndex !== -1) {
-    for (let i = 1; i < data.length; i++) {
-      const item = data[i][outOfStockIndex];
-      if (item && item.toString().trim() !== "") {
-        outOfStockItems.push(item.toString().trim());
+
+  data.forEach(function(row) {
+    row.forEach(function(cell) {
+      const value = cell ? cell.toString().trim() : "";
+      const key = value.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+      if (
+        value &&
+        key !== "outofstockitems" &&
+        key !== "shopstatus" &&
+        key !== "status" &&
+        key !== "open" &&
+        key !== "closed"
+      ) {
+        outOfStockItems.push(value);
       }
-    }
-  }
-  
-  // Return as JSON
+    });
+  });
+
   return ContentService
     .createTextOutput(JSON.stringify({
-      outOfStockItems: outOfStockItems
+      outOfStockItems: outOfStockItems,
+      values: data
     }))
     .setMimeType(ContentService.MimeType.JSON);
 }
@@ -94,6 +95,41 @@ function doGet() {
 ---
 
 ## Step 4: How It Works
+
+## Shop Status Setup
+
+For the shop open/closed sheet, use a cell named `SHOP_STATUS` and put `OPEN` or `CLOSED` either beside it or below it.
+
+Apps Script:
+
+```javascript
+function doGet() {
+  const sheet = SpreadsheetApp.getActiveSheet();
+  const data = sheet.getDataRange().getValues();
+  let status = "OPEN";
+
+  for (let row = 0; row < data.length; row++) {
+    for (let col = 0; col < data[row].length; col++) {
+      const key = data[row][col] ? data[row][col].toString().trim().toUpperCase() : "";
+      if (key === "SHOP_STATUS") {
+        const right = data[row][col + 1] ? data[row][col + 1].toString().trim().toUpperCase() : "";
+        const below = data[row + 1] && data[row + 1][col] ? data[row + 1][col].toString().trim().toUpperCase() : "";
+        status = right === "CLOSED" || below === "CLOSED" ? "CLOSED" : "OPEN";
+      }
+    }
+  }
+
+  return ContentService
+    .createTextOutput(JSON.stringify({ status: status, values: data }))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+```
+
+Add the deployed web app URL to `.env.local`:
+
+```env
+NEXT_PUBLIC_SHOP_STATUS_URL=https://script.google.com/macros/s/xxxxxxxxxxxxx/exec
+```
 
 **Frontend:**
 - Every 30 seconds, your app checks `/api/stock-status` endpoint
@@ -169,7 +205,7 @@ Keep this list of exact names to copy-paste into your Google Sheet:
 |---------|-------------|--------------|
 | Endpoint | `/api/shop-status` | `/api/stock-status` |
 | Stops orders | ✅ Yes | ❌ No (just individual items) |
-| Environment variable | `GOOGLE_SHEET_URL` | `GOOGLE_STOCK_SHEET_URL` |
+| Environment variable | `NEXT_PUBLIC_SHOP_STATUS_URL` | `GOOGLE_STOCK_SHEET_URL` |
 | Data format | `{status: "OPEN"}` | `{outOfStockItems: [...]}` |
 | Banner color | 🔴 Red | 🟠 Orange |
 

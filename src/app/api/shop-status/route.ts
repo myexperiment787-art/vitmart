@@ -1,9 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getShopStatus, setShopStatus } from "@/src/lib/ownerSettings";
+import { fetchShopStatusFromSheet } from "@/src/lib/googleSheetStatus";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export async function GET() {
   try {
-    return NextResponse.json({ status: getShopStatus() });
+    const sheetStatus = await fetchShopStatusFromSheet();
+    const status = sheetStatus || getShopStatus();
+
+    return NextResponse.json({ status, source: sheetStatus ? "google-sheet" : "local" });
 
   } catch (error) {
     console.error("Shop status error:", error);

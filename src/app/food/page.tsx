@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import Navbar from "../../components/Navbar";
 import { useCart } from "../../context/CartContext";
 import { saveBrowserOrder } from "../../lib/orderBrowserCache";
+import { isItemListedOutOfStock } from "../../lib/itemAvailability";
 
 declare global { interface Window { Razorpay: any; } }
 
@@ -37,7 +38,7 @@ export default function FoodPage() {
 
   // Check if an item is available
   const isItemAvailable = (itemName: string) => {
-    return !outOfStockItems.includes(itemName);
+    return !isItemListedOutOfStock(itemName, outOfStockItems);
   };
 
   useEffect(() => {

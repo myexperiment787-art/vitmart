@@ -1,12 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getOutOfStockItems, setGlobalOutOfStockItems, setRestaurantOutOfStockItems, toggleRestaurantItemAvailability } from "@/src/lib/ownerSettings";
+import { fetchOutOfStockItemsFromSheet, mergeOutOfStockItems } from "@/src/lib/googleSheetStatus";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const restaurantId = searchParams.get("restaurantId");
-    const outOfStockItems = getOutOfStockItems(restaurantId ? Number.parseInt(restaurantId) : undefined);
-    return NextResponse.json({ outOfStockItems });
+    const parsedRestaurantId = restaurantId ? Number.parseInt(restaurantId) : undefined;
+    const sheetItems = await fetchOutOfStockItemsFromSheet(parsedRestaurantId);
+    const localItems = getOutOfStockItems(parsedRestaurantId);
+    const outOfStockItems = mergeOutOfStockItems(sheetItems, localItems);
+
+    return NextResponse.json({
+      outOfStockItems,
+      source: sheetItems ? "google-sheet+local" : "local",
+    });
 
   } catch (error) {
     console.error("Stock status error:", error);

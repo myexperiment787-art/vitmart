@@ -2,6 +2,7 @@
 import { useRef, useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { mergeBrowserOrders, readBrowserOrders, saveBrowserOrders, BrowserOrder } from "@/src/lib/orderBrowserCache";
+import { isItemListedOutOfStock, normalizeMenuItemName } from "@/src/lib/itemAvailability";
 
 const restaurantMenuItems: Record<number, string[]> = {
   1: ["Veg Momo (8 pcs)", "Fried Momo (8 pcs)", "Paneer Momo (8 pcs)", "Tandoori Momo (8 pcs)", "Momo Soup"],
@@ -492,9 +493,10 @@ export default function OwnerRestaurantOrdersPage() {
   };
 
   const toggleItemAvailability = async (itemName: string) => {
-    const nextAvailable = outOfStockItems.includes(itemName);
+    const nextAvailable = isItemListedOutOfStock(itemName, outOfStockItems);
+    const normalizedItemName = normalizeMenuItemName(itemName);
     const nextItems = nextAvailable
-      ? outOfStockItems.filter((name) => name !== itemName)
+      ? outOfStockItems.filter((name) => normalizeMenuItemName(name) !== normalizedItemName)
       : [...outOfStockItems, itemName];
 
     setSavingItemName(itemName);
@@ -517,7 +519,7 @@ export default function OwnerRestaurantOrdersPage() {
       }
     } catch (error) {
       console.error("Failed to update item availability:", error);
-      setOutOfStockItems(nextItems.includes(itemName) ? outOfStockItems : [...nextItems, itemName]);
+      setOutOfStockItems(outOfStockItems);
       alert("Unable to update item availability right now.");
     } finally {
       setSavingItemName(null);
@@ -642,7 +644,7 @@ export default function OwnerRestaurantOrdersPage() {
             <p style={{ margin: "0 0 10px", fontSize: "14px", fontWeight: 800, color: "#0f172a" }}>Item Availability</p>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "10px" }}>
               {menuItems.map((itemName) => {
-                const available = !outOfStockItems.includes(itemName);
+                const available = !isItemListedOutOfStock(itemName, outOfStockItems);
                 return (
                   <button
                     key={itemName}
