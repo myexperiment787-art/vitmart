@@ -24,6 +24,8 @@ export type LocalUserRecord = {
   created_at: number;
   reset_token_hash: string | null;
   reset_token_expires_at: number | null;
+  disabled_at?: number | null;
+  disabled_reason?: string | null;
 };
 
 export type LocalSessionRecord = {

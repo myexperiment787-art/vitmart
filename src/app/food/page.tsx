@@ -135,7 +135,7 @@ export default function FoodPage() {
       const res = await fetch("/api/order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: total, receipt: `food_${Date.now()}` }),
+        body: JSON.stringify({ amount: total, receipt: `food_${Date.now()}`, cartItems: cart, restaurantId: 0 }),
       });
       const data = await res.json();
       if (!data.success) throw new Error("Order creation failed");

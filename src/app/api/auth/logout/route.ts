@@ -1,12 +1,39 @@
 import { NextRequest, NextResponse } from "next/server";
-import { clearAuthCookie, deleteSession } from "@/src/lib/auth";
+import { deleteSession, sessionCookieName } from "@/src/lib/auth";
+import type { UserRole } from "@/src/lib/auth";
+
+const sessionRoles: UserRole[] = ["customer", "delivery", "owner"];
+
+async function readRequestedRole(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const role = String(body?.role || "") as UserRole;
+    return sessionRoles.includes(role) ? role : null;
+  } catch {
+    return null;
+  }
+}
 
 export async function POST(req: NextRequest) {
-  const cookieHeader = req.headers.get("cookie") || "";
-  const sessionMatch = cookieHeader.match(/(?:^|;\s*)quickmart_session=([^;]+)/);
-  if (sessionMatch) await deleteSession(decodeURIComponent(sessionMatch[1]));
-
+  const requestedRole = await readRequestedRole(req);
+  const cookieNames = requestedRole
+    ? [sessionCookieName(requestedRole)]
+    : [...sessionRoles.map((role) => sessionCookieName(role)), sessionCookieName()];
   const response = NextResponse.json({ success: true });
-  response.headers.set("Set-Cookie", clearAuthCookie());
+
+  for (const cookieName of cookieNames) {
+    const token = req.cookies.get(cookieName)?.value;
+    if (token) await deleteSession(token);
+    response.cookies.set({
+      name: cookieName,
+      value: "",
+      httpOnly: true,
+      sameSite: "lax",
+      path: "/",
+      maxAge: 0,
+      secure: process.env.NODE_ENV === "production",
+    });
+  }
+
   return response;
 }

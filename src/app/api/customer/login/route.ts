@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { authenticate, createSession, ensureSeedUsers, normalizePhone, publicUser } from "@/src/lib/auth";
-import { isDatabaseConfigured } from "@/src/lib/db";
+import { authenticate, createSession, createUser, ensureSeedUsers, findUserByPhone, isUserDisabled, normalizePhone, publicUser, sessionCookieName } from "@/src/lib/auth";
 import { hashPassword } from "@/src/lib/customerAuth";
-import { verifyCustomerAccount, upsertCustomerAccountCookie, CustomerAccount, readCustomerAccountsFromRequest } from "@/src/lib/customerBrowserAuth";
+import { verifyCustomerAccount } from "@/src/lib/customerBrowserAuth";
+import { checkRateLimit } from "@/src/lib/rateLimit";
 
 export async function POST(req: NextRequest) {
   try {
@@ -12,24 +12,40 @@ export async function POST(req: NextRequest) {
     if (!phone || !password) {
       return NextResponse.json({ success: false, error: "Phone and password are required" }, { status: 400 });
     }
-    console.log('[customer/login] submitted phone=', String(phone));
+
     const normalized = normalizePhone(String(phone));
-    console.log('[customer/login] normalized phone=', normalized);
-    const customer = isDatabaseConfigured()
-      ? await authenticate(normalized, String(password), "customer")
-      : (() => {
-          const account = verifyCustomerAccount(req, normalized, hashPassword(String(password)));
-          return account
-            ? ({
-                id: account.id,
-                name: account.name,
-                phone: account.phone,
-                role: "customer",
-                created_at: account.createdAt,
-              } as const)
-            : null;
-        })();
-    console.log('[customer/login] user found=', Boolean(customer));
+    const rateLimit = checkRateLimit(req, "login:customer", normalized, {
+      limit: 8,
+      windowMs: 15 * 60 * 1000,
+    });
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { success: false, error: "Too many login attempts. Please try again later." },
+        { status: 429, headers: { "Retry-After": String(rateLimit.retryAfterSeconds) } }
+      );
+    }
+
+    let customer = await authenticate(normalized, String(password), "customer");
+
+    if (!customer) {
+      const existingCustomer = await findUserByPhone(normalized, "customer");
+      if (isUserDisabled(existingCustomer)) {
+        return NextResponse.json({ success: false, error: "This customer account is disabled. Please contact the owner." }, { status: 403 });
+      }
+
+      const legacyAccount = !existingCustomer
+        ? verifyCustomerAccount(req, normalized, hashPassword(String(password)))
+        : null;
+
+      if (legacyAccount) {
+        customer = await createUser({
+          name: legacyAccount.name,
+          phone: legacyAccount.phone,
+          password: String(password),
+          role: "customer",
+        });
+      }
+    }
 
     if (!customer) {
       return NextResponse.json({ success: false, error: "Invalid phone or password" }, { status: 401 });
@@ -42,21 +58,8 @@ export async function POST(req: NextRequest) {
       customer: publicUser(customer),
     });
 
-    if (!isDatabaseConfigured()) {
-      const existingAccounts = readCustomerAccountsFromRequest(req);
-      const nextAccount: CustomerAccount = {
-        id: customer.id,
-        name: customer.name,
-        phone: customer.phone,
-        passwordHash: hashPassword(String(password)),
-        createdAt: Date.now(),
-      };
-      const accounts = [...existingAccounts.filter((account) => account.phone !== customer.phone), nextAccount];
-      response.headers.set("Set-Cookie", upsertCustomerAccountCookie(accounts));
-    }
-
     response.cookies.set({
-      name: "quickmart_session",
+      name: sessionCookieName("customer"),
       value: session.token,
       httpOnly: true,
       sameSite: "lax",

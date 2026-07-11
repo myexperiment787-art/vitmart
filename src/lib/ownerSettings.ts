@@ -5,6 +5,7 @@ export type ShopStatus = "OPEN" | "CLOSED";
 
 type OwnerSettings = {
   shopStatus: ShopStatus;
+  restaurantShopStatuses: Record<string, ShopStatus>;
   globalOutOfStockItems: string[];
   restaurantOutOfStockItems: Record<string, string[]>;
 };
@@ -41,24 +42,72 @@ function writeJsonFile<T>(filePath: string, value: T) {
   fs.writeFileSync(filePath, JSON.stringify(value, null, 2));
 }
 
-function readOwnerSettings(): OwnerSettings {
-  return readJsonFile<OwnerSettings>(OWNER_SETTINGS_FILE, {
+function defaultOwnerSettings(): OwnerSettings {
+  return {
     shopStatus: "OPEN",
+    restaurantShopStatuses: {},
     globalOutOfStockItems: [],
     restaurantOutOfStockItems: {},
-  });
+  };
+}
+
+function normalizeShopStatus(status: unknown): ShopStatus {
+  return status === "CLOSED" ? "CLOSED" : "OPEN";
+}
+
+function normalizeStringArray(value: unknown) {
+  return Array.isArray(value) ? value.map((item) => String(item).trim()).filter(Boolean) : [];
+}
+
+function normalizeStatusRecord(value: unknown) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+
+  return Object.fromEntries(
+    Object.entries(value).map(([key, status]) => [key, normalizeShopStatus(status)])
+  ) as Record<string, ShopStatus>;
+}
+
+function normalizeStringArrayRecord(value: unknown) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+
+  return Object.fromEntries(
+    Object.entries(value).map(([key, items]) => [key, normalizeStringArray(items)])
+  ) as Record<string, string[]>;
+}
+
+function readOwnerSettings(): OwnerSettings {
+  const settings = readJsonFile<Partial<OwnerSettings>>(OWNER_SETTINGS_FILE, defaultOwnerSettings());
+
+  return {
+    shopStatus: normalizeShopStatus(settings.shopStatus),
+    restaurantShopStatuses: normalizeStatusRecord(settings.restaurantShopStatuses),
+    globalOutOfStockItems: normalizeStringArray(settings.globalOutOfStockItems),
+    restaurantOutOfStockItems: normalizeStringArrayRecord(settings.restaurantOutOfStockItems),
+  };
 }
 
 function writeOwnerSettings(settings: OwnerSettings) {
   writeJsonFile(OWNER_SETTINGS_FILE, settings);
 }
 
-export function getShopStatus(): ShopStatus {
-  return readOwnerSettings().shopStatus;
+export function getShopStatus(restaurantId?: number): ShopStatus {
+  const settings = readOwnerSettings();
+  if (restaurantId && Number.isFinite(restaurantId)) {
+    return settings.restaurantShopStatuses[String(restaurantId)] || "OPEN";
+  }
+
+  return settings.shopStatus;
 }
 
-export function setShopStatus(status: ShopStatus) {
+export function setShopStatus(status: ShopStatus, restaurantId?: number) {
   const settings = readOwnerSettings();
+
+  if (restaurantId && Number.isFinite(restaurantId)) {
+    settings.restaurantShopStatuses[String(restaurantId)] = status;
+    writeOwnerSettings(settings);
+    return settings.restaurantShopStatuses[String(restaurantId)];
+  }
+
   settings.shopStatus = status;
   writeOwnerSettings(settings);
   return settings.shopStatus;

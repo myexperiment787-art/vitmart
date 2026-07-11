@@ -36,7 +36,7 @@ function normalizeOrder(order: CustomerOrderRecord) {
 
 export async function GET(req: NextRequest) {
   await ensureSeedUsers();
-  const customer = await getUserFromRequest(req);
+  const customer = await getUserFromRequest(req, "customer");
   if (!customer || customer.role !== "customer") {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
   }

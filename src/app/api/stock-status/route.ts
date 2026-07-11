@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { ensureSeedUsers, getUserFromRequest } from "@/src/lib/auth";
 import { getOutOfStockItems, setGlobalOutOfStockItems, setRestaurantOutOfStockItems, toggleRestaurantItemAvailability } from "@/src/lib/ownerSettings";
 import { fetchOutOfStockItemsFromSheet, mergeOutOfStockItems } from "@/src/lib/googleSheetStatus";
 
@@ -27,6 +28,12 @@ export async function GET(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   try {
+    await ensureSeedUsers();
+    const owner = await getUserFromRequest(req, "owner");
+    if (!owner || owner.role !== "owner") {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
+
     const body = await req.json();
     const restaurantId = Number.parseInt(String(body.restaurantId || ""));
 

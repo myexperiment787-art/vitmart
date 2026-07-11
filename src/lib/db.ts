@@ -73,6 +73,9 @@ export async function initDatabase() {
       );
     `);
 
+    await pool.query(`ALTER TABLE app_users ADD COLUMN IF NOT EXISTS disabled_at BIGINT`);
+    await pool.query(`ALTER TABLE app_users ADD COLUMN IF NOT EXISTS disabled_reason TEXT`);
+
     initialized = true;
   })();
 

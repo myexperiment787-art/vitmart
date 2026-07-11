@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Navbar from "@/src/components/Navbar";
 
 export default function ForgotPasswordPage() {
@@ -27,8 +27,8 @@ export default function ForgotPasswordPage() {
         setError(data.error || "Unable to create reset link");
         return;
       }
-      setMessage(`Reset link created: ${data.resetUrl}`);
-      setTokenValue(String(data.token || ""));
+      setMessage(data.resetUrl ? `Reset link created: ${data.resetUrl}` : data.message || "If this account exists, a reset link will be sent.");
+      setTokenValue(data.token ? String(data.token) : null);
     } catch {
       setError("Unable to create reset link right now");
     } finally {

@@ -12,8 +12,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: false, error: "Current and new password are required" }, { status: 400 });
   }
 
-  if (String(newPassword).length < 4) {
-    return NextResponse.json({ success: false, error: "New password must be at least 4 characters" }, { status: 400 });
+  if (String(newPassword).length < 8) {
+    return NextResponse.json({ success: false, error: "New password must be at least 8 characters" }, { status: 400 });
   }
 
   const ok = await changePassword(user.id, String(currentPassword), String(newPassword));

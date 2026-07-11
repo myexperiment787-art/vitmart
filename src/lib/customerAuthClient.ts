@@ -38,5 +38,10 @@ export async function getSession() {
 }
 
 export async function logout() {
-  await fetch("/api/auth/logout", { method: "POST" });
+  await fetch("/api/auth/logout", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ role: "customer" }),
+  });
 }

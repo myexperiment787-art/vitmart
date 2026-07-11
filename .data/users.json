@@ -10,21 +10,11 @@
     "reset_token_expires_at": 1779310368263
   },
   {
-    "id": "user_e40102ce-8edd-45b5-ac5c-ab7348044dec",
-    "name": "Delivery Boy",
-    "phone": "9000000002",
-    "role": "delivery",
-    "password_hash": "$2b$10$k13IRE774IS8Czxx8D1m.eEiaG.fW255X3/DRs1vR1YhJ89kHBK1.",
-    "created_at": 1779308313713,
-    "reset_token_hash": null,
-    "reset_token_expires_at": null
-  },
-  {
     "id": "user_7f6be5a6-bbcb-4608-b036-210a84033d84",
     "name": "tejasva midha",
     "phone": "9117865343",
     "role": "customer",
-    "password_hash": "$2b$10$uNlFoWZdD/GabGLS8LqHbu1dKIyEvMktkcUkvlarzUR4A9FRkI4NO",
+    "password_hash": "$2b$10$Bi2Z2TNKjMi/kNQmiS4IY.ReqF8ZxJ06gU7V3jyF.r7GmKYYk7HS.",
     "created_at": 1779308329425,
     "reset_token_hash": null,
     "reset_token_expires_at": null
@@ -40,12 +30,12 @@
     "reset_token_expires_at": null
   },
   {
-    "id": "user_1581756b-374d-4d24-bddf-ea201a810387",
+    "id": "user_0a78a127-a2e9-4c24-bfa8-e9ed12f9fce9",
     "name": "Delivery Boy",
-    "phone": "9117865343",
+    "phone": "9630741753",
     "role": "delivery",
-    "password_hash": "$2b$10$B2MWMD0kmDScLBXtCX5SNu5y1halcSsa6sAbOWXhoEjo/MD7xa10K",
-    "created_at": 1779360217341,
+    "password_hash": "$2b$10$tawqDfjMTbxKLYaeGMWm.OPXftrDz1eeNEaATZkyl9GHOtoy6uRuu",
+    "created_at": 1783665765356,
     "reset_token_hash": null,
     "reset_token_expires_at": null
   }

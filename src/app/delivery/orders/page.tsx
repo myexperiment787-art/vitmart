@@ -1,6 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
-import { mergeBrowserOrders, readBrowserOrders, saveBrowserOrders } from "@/src/lib/orderBrowserCache";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 type Order = {
   id: string;
@@ -17,126 +16,59 @@ type Order = {
   driver?: string;
 };
 
+type DeliveryUser = {
+  id: string;
+  name: string;
+  phone: string;
+  driverLabel: string;
+};
+
 export default function DeliveryOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
+  const [deliveryUser, setDeliveryUser] = useState<DeliveryUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState<string | null>(null);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [toasts, setToasts] = useState<{ id: string; text: string }[]>([]);
   const ordersRef = useRef<Order[]>([]);
-  const ordersCacheKey = "delivery_orders_cache";
-  const statusOverridesKey = "delivery_order_status_overrides";
-  const statusRank: Record<string, number> = {
-    pending: 0,
-    accepted: 1,
-    picked: 2,
-    completed: 3,
-  };
 
-  const resolveHighestStatus = (...statuses: Array<string | undefined>) => {
-    return statuses.reduce((highest, status) => {
-      const next = (status || "pending") as keyof typeof statusRank;
-      const current = highest as keyof typeof statusRank;
-      return statusRank[next] > statusRank[current] ? next : current;
-    }, "pending");
-  };
+  const showToast = useCallback((text: string) => {
+    const id = `t_${Date.now()}_${Math.random().toString(36).slice(2,8)}`;
+    setToasts((s) => [...s, { id, text }]);
+    setTimeout(() => setToasts((s) => s.filter((t) => t.id !== id)), 3500);
+  }, []);
 
-  const readStatusOverrides = () => {
+  const load = useCallback(async () => {
     try {
-      const raw = localStorage.getItem(statusOverridesKey);
-      if (!raw) return {} as Record<string, string>;
-      const parsed = JSON.parse(raw) as Record<string, string>;
-      return parsed && typeof parsed === "object" ? parsed : {};
-    } catch {
-      return {} as Record<string, string>;
-    }
-  };
+      const res = await fetch(`/api/delivery/orders`, {
+        cache: "no-store",
+        credentials: "include",
+      });
+      if (res.status === 401) {
+        window.location.href = "/delivery/login?next=/delivery/orders";
+        return;
+      }
 
-  const writeStatusOverride = (orderId: string, status: string) => {
-    try {
-      const current = readStatusOverrides();
-      current[orderId] = status;
-      localStorage.setItem(statusOverridesKey, JSON.stringify(current));
-    } catch {}
-  };
-
-  const mergeWithCurrentState = (backendOrders: Order[]) => {
-    const overrides = readStatusOverrides();
-    const currentById = new Map<string, Order>(ordersRef.current.map((order: Order) => [order.id, order]));
-
-    return backendOrders.map((backendOrder) => {
-      const currentOrder = currentById.get(backendOrder.id);
-      const mergedStatus = resolveHighestStatus(
-        backendOrder.status,
-        currentOrder?.status,
-        overrides[backendOrder.id]
-      );
-
-      const mergedOrder = {
-        ...currentOrder,
-        ...backendOrder,
-        status: mergedStatus,
-      } as Order;
-
-      return mergedOrder;
-    });
-  };
-
-  const load = async () => {
-    try {
-      const res = await fetch(`/api/owner/orders`);
       const data = await res.json();
+      if (!data.success) {
+        throw new Error(data.error || "Unable to load delivery orders");
+      }
+
+      setDeliveryUser(data.deliveryUser || null);
       const all: Order[] = data.orders || [];
-      const cachedOrders = mergeBrowserOrders(all.sort((a, b) => b.timestamp - a.timestamp)).map((order) => ({
+      const sorted = all.sort((a, b) => b.timestamp - a.timestamp).map((order) => ({
         ...order,
         customerAddress: order.customerAddress ?? undefined,
       })) as Order[];
-      const sorted = mergeWithCurrentState(cachedOrders);
-
-      if (sorted.length > 0) {
-        ordersRef.current = sorted;
-        setOrders(sorted);
-        saveBrowserOrders(sorted);
-        try {
-          localStorage.setItem(ordersCacheKey, JSON.stringify(sorted));
-        } catch {}
-      } else {
-        try {
-          const browserCached = readBrowserOrders().map((order) => ({
-            ...order,
-            customerAddress: order.customerAddress ?? undefined,
-          })) as Order[];
-          if (browserCached.length > 0) {
-            ordersRef.current = browserCached;
-            setOrders(browserCached);
-            return;
-          }
-
-          const cached = localStorage.getItem(ordersCacheKey);
-          if (cached) {
-            const parsed = JSON.parse(cached) as Order[];
-            if (Array.isArray(parsed) && parsed.length > 0) {
-              ordersRef.current = parsed;
-              setOrders(parsed);
-            } else {
-              ordersRef.current = [];
-              setOrders([]);
-            }
-          } else {
-            ordersRef.current = [];
-            setOrders([]);
-          }
-        } catch {
-          ordersRef.current = [];
-          setOrders([]);
-        }
-      }
+      ordersRef.current = sorted;
+      setOrders(sorted);
     } catch (e) {
       console.error("Failed to load delivery orders:", e);
+      showToast("Unable to load delivery orders");
     } finally {
       setLoading(false);
     }
-  };
+  }, [showToast]);
 
   useEffect(() => {
     let intervalId: ReturnType<typeof setInterval> | null = null;
@@ -147,83 +79,98 @@ export default function DeliveryOrdersPage() {
     return () => {
       if (intervalId) clearInterval(intervalId);
     };
-  }, []);
+  }, [load]);
 
   const updateStatus = async (orderId: string, status: string) => {
-    const nextOrders = orders.map((order) => (order.id === orderId ? { ...order, status } : order));
+    const nextOrders = orders.map((order) =>
+      order.id === orderId
+        ? { ...order, status, ...(status === "picked" && deliveryUser ? { driver: deliveryUser.driverLabel } : {}) }
+        : order
+    );
     ordersRef.current = nextOrders;
     setOrders(nextOrders);
-    writeStatusOverride(orderId, status);
-    saveBrowserOrders(nextOrders);
-    try {
-      localStorage.setItem(ordersCacheKey, JSON.stringify(nextOrders));
-    } catch {}
 
     setUpdating(orderId);
     void (async () => {
       try {
-        const res = await fetch(`/api/owner/orders`, {
+        const res = await fetch(`/api/delivery/orders`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
+          credentials: "include",
           body: JSON.stringify({ orderId, status }),
         });
 
+        if (res.status === 401) {
+          window.location.href = "/delivery/login?next=/delivery/orders";
+          return;
+        }
+
         if (!res.ok) {
-          const text = await res.text().catch(() => "");
-          console.warn("[delivery/orders] backend status update failed", { orderId, status, httpStatus: res.status, text });
-          showToast(`Marked ${status} locally`);
+          const data = await res.json().catch(() => null);
+          console.warn("[delivery/orders] backend status update failed", { orderId, status, httpStatus: res.status, error: data?.error });
+          showToast(data?.error || "Could not update order status");
+          await load();
           return;
         }
 
         const data = await res.json().catch(() => null);
         if (data && data.success === false) {
           console.warn("[delivery/orders] backend status update returned failure", data.error || data);
-          showToast(`Marked ${status} locally`);
+          showToast(data.error || "Could not update order status");
+          await load();
           return;
         }
-
-        try {
-          const current = readStatusOverrides();
-          current[orderId] = status;
-          localStorage.setItem(statusOverridesKey, JSON.stringify(current));
-        } catch {}
 
         showToast(status === "picked" ? "Marked picked" : status === "completed" ? "Marked delivered" : "Status updated");
       } catch (e) {
         console.error("Failed to update order status", e);
-        showToast(`Saved ${status} locally`);
+        showToast("Could not save status. Please try again.");
+        await load();
       } finally {
         setUpdating(null);
       }
     })();
   };
 
-  const showToast = (text: string) => {
-    const id = `t_${Date.now()}_${Math.random().toString(36).slice(2,8)}`;
-    setToasts((s) => [...s, { id, text }]);
-    setTimeout(() => setToasts((s) => s.filter((t) => t.id !== id)), 3500);
-  };
-
-  const assignDriver = async (orderId: string) => {
-    const name = prompt("Assign driver (enter name):", "DeliveryBoy");
-    if (!name) return;
+  const assignToMe = async (orderId: string) => {
     try {
       setUpdating(orderId);
-      const res = await fetch(`/api/owner/orders`, {
+      const res = await fetch(`/api/delivery/orders`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderId, assignDriver: name }),
+        credentials: "include",
+        body: JSON.stringify({ orderId, assignToMe: true }),
       });
-      const data = await res.json();
-      if (!data.success) throw new Error(data.error || "Failed");
+      if (res.status === 401) {
+        window.location.href = "/delivery/login?next=/delivery/orders";
+        return;
+      }
+
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data?.success) {
+        showToast(data?.error || "Failed to claim order. Try again.");
+        await load();
+        return;
+      }
+
       await load();
-      showToast(`Assigned to ${name}`);
+      showToast("Order assigned to you");
     } catch (e) {
       console.error("Failed to assign driver", e);
-      alert("Failed to assign driver. Try again.");
+      showToast("Failed to claim order. Try again.");
     } finally {
       setUpdating(null);
     }
+  };
+
+  const logout = async () => {
+    await fetch("/api/auth/logout", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ role: "delivery" }),
+    }).catch(() => null);
+    window.location.href = "/delivery/login";
   };
 
   const todayEarnings = () => {
@@ -254,6 +201,7 @@ export default function DeliveryOrdersPage() {
   const muted: React.CSSProperties = { color: "#94a3b8" };
   const btnPrimary: React.CSSProperties = { background: "linear-gradient(90deg,#2563eb,#06b6d4)", color: "white", border: "none", padding: "10px 12px", borderRadius: 10, fontWeight: 800, cursor: "pointer", boxShadow: "0 6px 18px rgba(59,130,246,0.12)" };
   const btnSuccess: React.CSSProperties = { background: "linear-gradient(90deg,#10b981,#059669)", color: "white", border: "none", padding: "10px 12px", borderRadius: 10, fontWeight: 800, cursor: "pointer", boxShadow: "0 6px 18px rgba(16,185,129,0.08)" };
+  const btnSecondary: React.CSSProperties = { padding: "10px 12px", borderRadius: 10, border: "1px solid #e6eef8", background: "white", cursor: "pointer", fontWeight: 800, color: "#0f172a" };
   const asideStyle: React.CSSProperties = { padding: 16, borderRadius: 12, background: "white", border: "1px solid #eef2f7", height: "fit-content", position: "sticky", top: 84, boxShadow: "0 6px 18px rgba(2,6,23,0.03)" };
 
   return (
@@ -286,13 +234,18 @@ export default function DeliveryOrdersPage() {
             <div>
               <h1 style={{ margin: 0, fontSize: 28, fontWeight: 900, color: "#0f172a" }}>Delivery Orders</h1>
               <div style={{ color: "#64748b", marginTop: 6 }}>Manage pickups, track deliveries and view earnings.</div>
+              {deliveryUser ? (
+                <div style={{ color: "#334155", marginTop: 6, fontSize: 13, fontWeight: 800 }}>
+                  Signed in: {deliveryUser.name} ({deliveryUser.phone})
+                </div>
+              ) : null}
             </div>
           </div>
         </div>
 
         <div style={{ textAlign: "right" }}>
           <div style={{ fontSize: 13, color: "#94a3b8" }}>Today&apos;s deliveries</div>
-          <div style={{ fontSize: 18, fontWeight: 900 }}>{todayEarnings().count} • ₹{todayEarnings().amount}</div>
+          <div style={{ fontSize: 18, fontWeight: 900 }}>{todayEarnings().count} - Rs {todayEarnings().amount}</div>
           <div style={{ marginTop: 8 }}>
             <label style={{ fontSize: 12, color: "#6b7280", marginRight: 8 }}>Year:</label>
             <select value={selectedYear} onChange={(e) => setSelectedYear(parseInt(e.target.value))} style={{ padding: "6px 8px", borderRadius: 8, border: "1px solid #e6eef8" }}>
@@ -302,11 +255,12 @@ export default function DeliveryOrdersPage() {
               })}
             </select>
           </div>
+          <button onClick={logout} style={{ ...btnSecondary, marginTop: 10 }}>Logout</button>
         </div>
       </div>
 
       {loading ? (
-        <p>Loading…</p>
+        <p>Loading...</p>
       ) : orders.length === 0 ? (
         <div style={{ marginTop: 24, padding: 28, borderRadius: 12, background: "#f8fafc", border: "1px solid #e6eef8" }}>
           <p style={{ margin: 0, fontSize: 16, color: "#94a3b8" }}>No delivery orders right now.</p>
@@ -338,8 +292,8 @@ export default function DeliveryOrdersPage() {
                             <div style={{ fontSize: 18, fontWeight: 900, color: "#0f172a" }}>₹{o.total ?? (o.itemAmount ?? 0)}</div>
                           </div>
                           <div style={{ display: "flex", gap: 8 }}>
-                            <button disabled={!!updating} onClick={() => updateStatus(o.id, "picked")} style={btnPrimary}>{updating === o.id ? "…" : "🚚 Mark picked"}</button>
-                            <button onClick={() => assignDriver(o.id)} style={{ padding: "10px 12px", borderRadius: 10, border: "1px solid #e6eef8", background: "white", cursor: "pointer" }}>{o.driver ? `👤 ${o.driver}` : "Assign"}</button>
+                            <button disabled={!!updating} onClick={() => updateStatus(o.id, "picked")} style={btnPrimary}>{updating === o.id ? "..." : "Mark picked"}</button>
+                            <button disabled={!!updating || Boolean(o.driver)} onClick={() => assignToMe(o.id)} style={{ ...btnSecondary, cursor: updating || o.driver ? "not-allowed" : "pointer", opacity: o.driver ? 0.72 : 1 }}>{o.driver ? `Assigned: ${o.driver}` : "Claim"}</button>
                           </div>
                         </div>
                       </div>
@@ -365,8 +319,8 @@ export default function DeliveryOrdersPage() {
                             <div style={{ fontSize: 18, fontWeight: 900, color: "#0f172a" }}>₹{o.total ?? (o.itemAmount ?? 0)}</div>
                           </div>
                           <div style={{ display: "flex", gap: 8 }}>
-                            <button disabled={!!updating} onClick={() => updateStatus(o.id, "completed")} style={btnSuccess}>{updating === o.id ? "…" : "✅ Mark delivered"}</button>
-                            <button onClick={() => assignDriver(o.id)} style={{ padding: "10px 12px", borderRadius: 10, border: "1px solid #e6eef8", background: "white", cursor: "pointer" }}>{o.driver ? `👤 ${o.driver}` : "Assign"}</button>
+                            <button disabled={!!updating} onClick={() => updateStatus(o.id, "completed")} style={btnSuccess}>{updating === o.id ? "..." : "Mark delivered"}</button>
+                            <button disabled={!!updating || Boolean(o.driver)} onClick={() => assignToMe(o.id)} style={{ ...btnSecondary, cursor: updating || o.driver ? "not-allowed" : "pointer", opacity: o.driver ? 0.72 : 1 }}>{o.driver ? `Assigned: ${o.driver}` : "Claim"}</button>
                           </div>
                         </div>
                       </div>
@@ -400,7 +354,7 @@ export default function DeliveryOrdersPage() {
           {/* Right column: monthly earnings */}
           <aside className="aside" style={asideStyle}>
             <div style={{ fontSize: 15, fontWeight: 900, marginBottom: 8 }}>Monthly earnings</div>
-            <div style={{ fontSize: 13, color: "#64748b", marginBottom: 12 }}>₹10 per delivered order</div>
+            <div style={{ fontSize: 13, color: "#64748b", marginBottom: 12 }}>Rs 10 per delivered order</div>
             <div style={{ display: "grid", gap: 10 }}>
               {monthlyEarnings(selectedYear).map((amt, idx, arr) => {
                 const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -412,31 +366,23 @@ export default function DeliveryOrdersPage() {
                     <div style={{ flex: 1, background: "#f1f5f9", height: 18, borderRadius: 8, overflow: "hidden" }}>
                       <div style={{ width: `${pct}%`, height: "100%", background: "linear-gradient(90deg,#06b6d4,#3b82f6)", borderRadius: 8 }} />
                     </div>
-                    <div style={{ width: 56, textAlign: "right", fontWeight: 800 }}>₹{amt}</div>
+                    <div style={{ width: 56, textAlign: "right", fontWeight: 800 }}>Rs {amt}</div>
                   </div>
                 );
               })}
             </div>
             <div style={{ height: 1, background: "#eef2f7", margin: "12px 0" }} />
-            <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 8 }}>Driver earnings</div>
+            <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 8 }}>Your earnings</div>
             <div style={{ display: "grid", gap: 8 }}>
               {(() => {
-                const map = new Map<string, { count: number; amount: number }>();
-                orders.forEach((o) => {
-                  const name = o.driver || "Unassigned";
-                  if (!map.has(name)) map.set(name, { count: 0, amount: 0 });
-                  const cur = map.get(name)!;
-                  if (o.status === "completed") {
-                    cur.count += 1;
-                    cur.amount += 10;
-                  }
-                });
-                return Array.from(map.entries()).map(([name, v]) => (
-                  <div key={name} style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-                    <div style={{ color: "#374151" }}>{name}</div>
-                    <div style={{ fontWeight: 900 }}>₹{v.amount} <span style={{ color: "#64748b", fontWeight: 600, marginLeft: 8 }}>{v.count} del.</span></div>
+                const count = orders.filter((o) => o.status === "completed").length;
+                const amount = count * 10;
+                return (
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                    <div style={{ color: "#374151" }}>{deliveryUser?.name || "You"}</div>
+                    <div style={{ fontWeight: 900 }}>Rs {amount} <span style={{ color: "#64748b", fontWeight: 600, marginLeft: 8 }}>{count} del.</span></div>
                   </div>
-                ));
+                );
               })()}
             </div>
           </aside>

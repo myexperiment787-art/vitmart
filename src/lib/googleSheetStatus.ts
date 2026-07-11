@@ -25,7 +25,6 @@ function stockUrlEnvKeys(restaurantId?: number) {
     `GOOGLE_STOCK_SHEET_RESTAURANT_${restaurantId}_URL`,
     `GOOGLE_RESTAURANT_${restaurantId}_STOCK_SHEET_URL`,
     `NEXT_PUBLIC_STOCK_SHEET_RESTAURANT_${restaurantId}_URL`,
-    ...GLOBAL_STOCK_URL_ENV_KEYS,
   ];
 }
 

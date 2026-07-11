@@ -48,6 +48,14 @@ export default function OwnerLoginPage() {
             <p style={{ fontSize: "16px", color: "#475569", marginBottom: "0px" }}>
               Select your restaurant to manage orders
             </p>
+            <div style={{ display: "flex", justifyContent: "center", gap: "10px", flexWrap: "wrap", marginTop: "18px" }}>
+              <Link href="/owner/order-history" style={{ display: "inline-block", textDecoration: "none", background: "#2563eb", color: "white", padding: "11px 16px", borderRadius: "12px", fontWeight: 800, fontSize: "14px" }}>
+                View order history
+              </Link>
+              <Link href="/owner/accounts" style={{ display: "inline-block", textDecoration: "none", background: "#0f766e", color: "white", padding: "11px 16px", borderRadius: "12px", fontWeight: 800, fontSize: "14px" }}>
+                View account counts
+              </Link>
+            </div>
           </div>
 
           {/* Restaurant Grid */}

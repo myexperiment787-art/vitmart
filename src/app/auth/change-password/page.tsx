@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 import Navbar from "@/src/components/Navbar";
 
 export default function ChangePasswordPage() {
-  const [role, setRole] = useState("customer");
   const [token, setToken] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");

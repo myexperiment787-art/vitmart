@@ -3,6 +3,8 @@ import crypto from "crypto";
 import { formatOrderDate, postOrderToSheet } from "../../googleSheetHelper";
 import { ensureSeedUsers, findUserByPhone } from "@/src/lib/auth";
 import { createOrder } from "@/src/lib/orders";
+import { validateOrderAvailability } from "@/src/lib/orderAvailability";
+import { calculateOrderPricing } from "@/src/lib/orderPricing";
 
 type CartItem = {
   name: string;
@@ -38,187 +40,163 @@ export async function POST(req: NextRequest) {
       restaurantId,
     } = (await req.json()) as VerifyOrderPayload;
 
-    const safeCartItems = Array.isArray(cartItems) ? cartItems : [];
-    const safeTotal = Number(total ?? 0);
+    const pricing = calculateOrderPricing(cartItems, restaurantId, total);
+    await validateOrderAvailability(pricing);
 
     await ensureSeedUsers();
-    // Don't require an authenticated session here because Razorpay handler may not send cookies
-    // instead, try to associate the order with an existing customer by phone if possible
+
     let customerId: string | null = null;
     try {
       const found = customerPhone ? await findUserByPhone(customerPhone, "customer") : null;
       if (found) customerId = found.id;
-    } catch (e) {
-      console.warn("[order/verify] failed to lookup user by phone", e);
+    } catch (error) {
+      console.warn("[order/verify] failed to lookup user by phone", error);
     }
 
-    // ✅ Step 1: Verify Razorpay signature
     const secret = process.env.RAZORPAY_KEY_SECRET;
     if (!secret) {
       console.error("[order/verify] Missing RAZORPAY_KEY_SECRET env var");
-      return NextResponse.json({ success: false, error: "Payment gateway not configured (missing secret)" }, { status: 500 });
+      return NextResponse.json({ success: false, error: "Payment gateway not configured" }, { status: 500 });
     }
 
-    const expectedSignature = crypto.createHmac("sha256", secret).update(`${razorpay_order_id}|${razorpay_payment_id}`).digest("hex");
+    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+      return NextResponse.json({ success: false, error: "Missing payment verification fields" }, { status: 400 });
+    }
+
+    const expectedSignature = crypto
+      .createHmac("sha256", secret)
+      .update(`${razorpay_order_id}|${razorpay_payment_id}`)
+      .digest("hex");
 
     if (expectedSignature !== razorpay_signature) {
       console.error("[order/verify] Signature mismatch");
       return NextResponse.json({ success: false, error: "Invalid signature" }, { status: 400 });
     }
 
+    const Razorpay = (await import("razorpay")).default;
+    const razorpay = new Razorpay({
+      key_id: process.env.RAZORPAY_KEY_ID!,
+      key_secret: secret,
+    });
+    const paidOrder = (await razorpay.orders.fetch(String(razorpay_order_id))) as { amount?: number | string };
+    if (Number(paidOrder.amount) !== pricing.total * 100) {
+      console.error("[order/verify] Paid amount mismatch");
+      return NextResponse.json({ success: false, error: "Paid amount does not match cart total" }, { status: 400 });
+    }
+
     const ownerPhone = process.env.WHATSAPP_NUMBER || "919630741753";
-
-    const itemsText = safeCartItems
-      .map((item) =>
-        `• ${item.name} × ${item.quantity} = ₹${item.price * item.quantity}`
-      )
+    const orderItems = pricing.items.map((item) => `${item.name} x${item.quantity}`).join(", ");
+    const itemsText = pricing.items
+      .map((item) => `* ${item.name} x ${item.quantity} = Rs ${item.price * item.quantity}`)
       .join("\n");
-
-    const itemAmount = safeCartItems.reduce(
-      (sum, item) => sum + item.price * item.quantity,
-      0
-    );
-
-    // ✅ Step 2: Save order to owner dashboard
-    const orderForOwner = {
-      customerName,
-      customerPhone,
-      customerAddress,
-        items: safeCartItems
-        .map((item) => `${item.name} ×${item.quantity}`)
-        .join(", "),
-      itemAmount,
-      total: safeTotal,
-      paymentId: razorpay_payment_id,
-      restaurantName: restaurantName || "Unknown Restaurant",
-      restaurantId: restaurantId || 0,
-    };
+    const savedRestaurantName = pricing.restaurantId ? pricing.restaurantName : restaurantName || pricing.restaurantName;
 
     let savedOrderId: string | null = null;
     let savedOrder: Awaited<ReturnType<typeof createOrder>> | null = null;
     try {
       const order = await createOrder({
         id: `order_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
-        customerId: customerId,
+        customerId,
         customerName: customerName || "",
         customerPhone: customerPhone || "",
         customerAddress: customerAddress || null,
-        items: orderForOwner.items,
-        itemAmount,
-        total: safeTotal,
+        items: orderItems,
+        itemAmount: pricing.itemAmount,
+        total: pricing.total,
         paymentId: razorpay_payment_id,
         timestamp: Date.now(),
-        restaurantName: restaurantName || "Unknown Restaurant",
-        restaurantId: restaurantId || 0,
+        restaurantName: savedRestaurantName,
+        restaurantId: pricing.restaurantId,
         status: "pending",
       });
       savedOrderId = order.id;
       savedOrder = order;
-      console.log("✅ Order saved to owner dashboard", savedOrderId);
-    } catch (e) {
-      console.error("Failed to save to owner dashboard:", e);
+      console.log("Order saved to owner dashboard", savedOrderId);
+    } catch (error) {
+      console.error("Failed to save to owner dashboard:", error);
     }
 
-    // ✅ Step 2b: Post to restaurant-specific Google Sheet (include orderId so sheet can update instead of duplicate)
-    if (restaurantId && restaurantId > 0) {
-      await postOrderToSheet(restaurantId, {
+    if (pricing.restaurantId > 0) {
+      await postOrderToSheet(pricing.restaurantId, {
         orderDate: formatOrderDate(savedOrder?.timestamp ?? Date.now()),
         customerName: customerName || "Not provided",
-      items: safeCartItems
-          .map((item) => `${item.name} ×${item.quantity}`)
-          .join(", "),
+        items: orderItems,
         deliveryAddress: customerAddress || "Not provided",
-        totalAmount: safeTotal,
+        totalAmount: pricing.total,
         orderId: savedOrderId || undefined,
       });
     }
 
-    // ✅ Step 3: Auto-send to YOUR Telegram (100% automatic, no click needed)
     const telegramToken = process.env.TELEGRAM_BOT_TOKEN;
     const telegramChatId = process.env.TELEGRAM_CHAT_ID;
-
     const telegramMessage =
-      `🔔 *New Order — Quick Mart*\n\n` +
-      `👤 Customer: ${customerName || "Not provided"}\n` +
-      `📱 Phone: +91 ${customerPhone || "Not provided"}\n\n` +
-      `🛒 *Order:*\n${itemsText}\n\n` +
-      `💰 *Total Paid: ₹${safeTotal}*\n` +
-      `💳 Payment ID: \`${razorpay_payment_id}\`\n\n` +
-      `✅ *PAYMENT CONFIRMED*`;
+      `New Order - Quick Mart\n\n` +
+      `Customer: ${customerName || "Not provided"}\n` +
+      `Phone: +91 ${customerPhone || "Not provided"}\n\n` +
+      `Order:\n${itemsText}\n\n` +
+      `Total Paid: Rs ${pricing.total}\n` +
+      `Payment ID: ${razorpay_payment_id}\n\n` +
+      `PAYMENT CONFIRMED`;
 
     let telegramSent = false;
-    // ✅ Save to Google Sheets
     const sheetUrl = process.env.GOOGLE_SHEET_URL;
     if (sheetUrl) {
       try {
-        const itemsText = safeCartItems
-          .map((item) => `${item.name} ×${item.quantity}`)
-          .join(", ");
-
         await fetch(sheetUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             customerName,
             customerPhone,
-            items: itemsText,
-            total: safeTotal,
+            items: orderItems,
+            total: pricing.total,
             paymentId: razorpay_payment_id,
           }),
         });
-        console.log("✅ Order saved to Google Sheets");
-      } catch (e) {
-        console.error("Google Sheets error:", e);
+        console.log("Order saved to Google Sheets");
+      } catch (error) {
+        console.error("Google Sheets error:", error);
       }
     }
-    // Only send Telegram notification for FOOD orders, NOT restaurant orders
-    if (telegramToken && telegramChatId && (!restaurantId || restaurantId === 0)) {
+
+    if (telegramToken && telegramChatId && pricing.restaurantId === 0) {
       try {
-        const tgRes = await fetch(
-          `https://api.telegram.org/bot${telegramToken}/sendMessage`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              chat_id: telegramChatId,
-              text: telegramMessage,
-              parse_mode: "Markdown",
-            }),
-          }
-        );
+        const tgRes = await fetch(`https://api.telegram.org/bot${telegramToken}/sendMessage`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            chat_id: telegramChatId,
+            text: telegramMessage,
+          }),
+        });
         const tgData = await tgRes.json();
-        telegramSent = tgData.ok;
-        console.log("✅ Telegram notification sent:", tgData.ok);
-      } catch (e) {
-        console.error("Telegram error:", e);
+        telegramSent = Boolean(tgData.ok);
+        console.log("Telegram notification sent:", telegramSent);
+      } catch (error) {
+        console.error("Telegram error:", error);
       }
     }
 
-    // ✅ Step 3: Build WhatsApp URL for customer confirmation
-    const cleanPhone = customerPhone?.replace(/[\s\-\+]/g, "") || "";
+    const cleanPhone = customerPhone?.replace(/[\s\-+]/g, "") || "";
     const fullPhone = cleanPhone.startsWith("91") ? cleanPhone : `91${cleanPhone}`;
-
     const customerMessage =
-      `🎉 *Order Confirmed! Thank you, ${customerName || "friend"}!*\n\n` +
-      `Your order at *Quick Mart* is confirmed 🛒\n\n` +
-      `🛒 *Your Order:*\n${itemsText}\n\n` +
-      `💰 Total Paid: ₹${safeTotal}\n` +
-      `🚚 Delivery to your hostel shortly!\n\n` +
+      `Order Confirmed! Thank you, ${customerName || "friend"}!\n\n` +
+      `Your order at Quick Mart is confirmed.\n\n` +
+      `Your Order:\n${itemsText}\n\n` +
+      `Total Paid: Rs ${pricing.total}\n` +
+      `Delivery to your hostel shortly!\n\n` +
       `For help: +91 ${ownerPhone.replace(/^91/, "")}`;
-
     const customerWhatsappUrl = customerPhone
       ? `https://wa.me/${fullPhone}?text=${encodeURIComponent(customerMessage)}`
       : null;
 
-    // Backup WhatsApp URL for owner (in case Telegram not set up)
     const ownerWaMessage =
-      `🔔 *New Order — Quick Mart*\n\n` +
-      `👤 ${customerName || "Unknown"}\n` +
-      `📱 +91 ${customerPhone || "N/A"}\n\n` +
-      `🛒 ${itemsText}\n\n` +
-      `💰 Total: ₹${safeTotal} ✅ PAID\n` +
-      `💳 ${razorpay_payment_id}`;
-
+      `New Order - Quick Mart\n\n` +
+      `${customerName || "Unknown"}\n` +
+      `+91 ${customerPhone || "N/A"}\n\n` +
+      `${itemsText}\n\n` +
+      `Total: Rs ${pricing.total} PAID\n` +
+      `${razorpay_payment_id}`;
     const ownerWhatsappUrl = `https://wa.me/${ownerPhone}?text=${encodeURIComponent(ownerWaMessage)}`;
 
     return NextResponse.json({
@@ -230,9 +208,11 @@ export async function POST(req: NextRequest) {
       savedOrderId,
       savedOrder,
     });
-
   } catch (error: unknown) {
-    console.error("❌ Verify error:", error);
-    return NextResponse.json({ success: false, error: "Verification failed" }, { status: 500 });
+    console.error("Verify error:", error);
+    return NextResponse.json(
+      { success: false, error: error instanceof Error ? error.message : "Verification failed" },
+      { status: 400 }
+    );
   }
 }

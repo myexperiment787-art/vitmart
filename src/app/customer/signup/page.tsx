@@ -27,8 +27,8 @@ export default function CustomerSignupPage() {
       setError("Enter a valid 10-digit phone number");
       return;
     }
-    if (password.trim().length < 4) {
-      setError("Password must be at least 4 characters");
+    if (password.trim().length < 8) {
+      setError("Password must be at least 8 characters");
       return;
     }
 

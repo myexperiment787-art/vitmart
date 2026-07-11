@@ -123,6 +123,23 @@ export async function getOrdersByRestaurant(restaurantId?: number) {
   return result.rows;
 }
 
+export async function getOrderHistory(restaurantId?: number) {
+  if (!isDatabaseConfigured()) {
+    return readLocalOrders()
+      .filter((o) => {
+        const orderRecord = o as Record<string, unknown>;
+        return restaurantId ? Number(orderRecord.restaurant_id ?? orderRecord.restaurantId) === restaurantId : true;
+      })
+      .sort((a, b) => Number(b.timestamp) - Number(a.timestamp))
+      .map((o) => normalizeLocalOrder(o));
+  }
+
+  const result = restaurantId
+    ? await query<AppOrder>(`SELECT * FROM app_orders WHERE restaurant_id = $1 ORDER BY timestamp DESC`, [restaurantId])
+    : await query<AppOrder>(`SELECT * FROM app_orders ORDER BY timestamp DESC`);
+  return result.rows;
+}
+
 export async function getOrderById(orderId: string) {
   if (!isDatabaseConfigured()) {
     const order = readLocalOrders().find((o) => o.id === orderId);
@@ -159,6 +176,44 @@ export async function updateOrder(orderId: string, changes: { status?: string; d
   }
 
   await query(`UPDATE app_orders SET ${fields.join(", ")} WHERE id = $${values.length}`, values);
+}
+
+export async function claimOrderForDelivery(orderId: string, changes: { driver: string; status?: string }) {
+  if (!isDatabaseConfigured()) {
+    const orders = readLocalOrders();
+    const idx = orders.findIndex((o) => o.id === orderId);
+    if (idx < 0) return { claimed: false, order: null };
+
+    const current = normalizeLocalOrder(orders[idx]);
+    if (current.driver) return { claimed: false, order: current };
+
+    orders[idx] = {
+      ...orders[idx],
+      driver: changes.driver,
+      ...(changes.status !== undefined ? { status: changes.status } : {}),
+    };
+    writeLocalOrders(orders);
+    return { claimed: true, order: normalizeLocalOrder(orders[idx]) };
+  }
+
+  const fields: string[] = ["driver = $1"];
+  const values: unknown[] = [changes.driver];
+
+  if (changes.status !== undefined) {
+    fields.push(`status = $${values.length + 1}`);
+    values.push(changes.status);
+  }
+
+  values.push(orderId);
+  const result = await query<AppOrder>(
+    `UPDATE app_orders SET ${fields.join(", ")}
+     WHERE id = $${values.length} AND (driver IS NULL OR driver = '')
+     RETURNING *`,
+    values
+  );
+
+  if (result.rows[0]) return { claimed: true, order: result.rows[0] };
+  return { claimed: false, order: await getOrderById(orderId) };
 }
 
 function nullableString(value: unknown) {

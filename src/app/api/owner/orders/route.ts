@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ensureSeedUsers } from "@/src/lib/auth";
+import { ensureSeedUsers, getUserFromRequest } from "@/src/lib/auth";
 import { getOrderById, getOrdersByRestaurant, updateOrder } from "@/src/lib/orders";
 import type { AppOrder } from "@/src/lib/orders";
 import { formatOrderDate, postOrderToSheet } from "../../googleSheetHelper";
@@ -17,6 +17,11 @@ type OwnerOrderRecord = Partial<AppOrder> & {
 export async function GET(req: NextRequest) {
   try {
     await ensureSeedUsers();
+    const owner = await getUserFromRequest(req, "owner");
+    if (!owner || owner.role !== "owner") {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
+
     const { searchParams } = new URL(req.url);
     const restaurantId = searchParams.get("restaurantId");
     const orders = await getOrdersByRestaurant(restaurantId ? parseInt(restaurantId) : undefined);
@@ -52,6 +57,11 @@ export async function POST() {
 export async function PATCH(req: NextRequest) {
   try {
     await ensureSeedUsers();
+    const owner = await getUserFromRequest(req, "owner");
+    if (!owner || owner.role !== "owner") {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
+
     const { orderId, status, assignDriver } = await req.json();
     if (!orderId) {
       return NextResponse.json({ success: false, error: "orderId is required" }, { status: 400 });

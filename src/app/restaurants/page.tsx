@@ -159,8 +159,13 @@ export default function RestaurantsPage() {
 
   useEffect(() => {
     const checkShopStatus = async () => {
+      if (!selectedRestaurant) {
+        setShopOpen(true);
+        return;
+      }
+
       try {
-        const res = await fetch("/api/shop-status", { cache: "no-store" });
+        const res = await fetch(`/api/shop-status?restaurantId=${selectedRestaurant.id}`, { cache: "no-store" });
         const data = await res.json();
         setShopOpen(data.status !== "CLOSED");
       } catch {
@@ -171,7 +176,7 @@ export default function RestaurantsPage() {
     checkShopStatus();
     const interval = setInterval(checkShopStatus, 5000);
     return () => clearInterval(interval);
-  }, []);
+  }, [selectedRestaurant]);
 
   useEffect(() => {
     const checkStockStatus = async () => {
@@ -213,6 +218,10 @@ export default function RestaurantsPage() {
   const subTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const delivery = subTotal >= 200 ? 0 : 20;
   const total = subTotal + delivery;
+  const isShopClosed = shopOpen === false;
+  const checkoutUnavailableMessage = selectedRestaurant
+    ? `${selectedRestaurant.name} is currently closed. You can keep items in your cart, but payment is disabled until it opens.`
+    : "This shop is currently closed. You can keep items in your cart, but payment is disabled until it opens.";
 
   const isMenuItemAvailable = (itemName: string, fallbackAvailable = true) => {
     return fallbackAvailable && !isItemListedOutOfStock(itemName, outOfStockItems);
@@ -240,12 +249,24 @@ export default function RestaurantsPage() {
   );
 
   const handlePayment = async () => {
-    if (shopOpen === false) {
-      alert("🔴 Sorry! The shop is currently closed. Please check back later!");
+    if (isShopClosed) {
+      alert("Sorry, the shop is currently closed. Payment is disabled until it opens again.");
       return;
     }
 
     if (!selectedRestaurant || !cartCategory) return;
+    try {
+      const statusRes = await fetch(`/api/shop-status?restaurantId=${selectedRestaurant.id}`, { cache: "no-store" });
+      const statusData = await statusRes.json();
+      if (statusData.status === "CLOSED") {
+        setShopOpen(false);
+        alert("Sorry, the shop is currently closed. Payment is disabled until it opens again.");
+        return;
+      }
+      setShopOpen(true);
+    } catch {
+      // Keep the existing page state if the final status check fails.
+    }
     if (cart.length === 0) return alert("Your cart is empty.");
     if (!isCustomerLoggedIn || !loggedCustomerId) {
       alert("Please login or sign up before placing order.");
@@ -267,6 +288,8 @@ export default function RestaurantsPage() {
         body: JSON.stringify({
           amount: total,
           receipt: `${cartCategory}_${Date.now()}`,
+          cartItems: cart,
+          restaurantId: selectedRestaurant.id,
         }),
       });
       const orderData = await orderRes.json();
@@ -596,6 +619,14 @@ export default function RestaurantsPage() {
                   <p style={{ textAlign: "center", marginTop: 0, marginBottom: "16px", fontSize: "12px", color: "#64748b" }}>
                     This cart belongs only to {selectedRestaurant.name}
                   </p>
+                  {isShopClosed ? (
+                    <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: "12px", padding: "10px", marginBottom: "12px" }}>
+                      <div style={{ fontSize: "13px", color: "#991b1b", fontWeight: 900, textAlign: "center" }}>Shop closed</div>
+                      <p style={{ margin: "4px 0 0", fontSize: "12px", color: "#7f1d1d", lineHeight: 1.45, textAlign: "center", fontWeight: 700 }}>
+                        {checkoutUnavailableMessage}
+                      </p>
+                    </div>
+                  ) : null}
 
                   {cart.length === 0 ? (
                     <div style={{ textAlign: "center", padding: "24px 0", color: "#94a3b8" }}>
@@ -637,7 +668,9 @@ export default function RestaurantsPage() {
 
                       {!showForm ? (
                         <button
+                          disabled={isShopClosed}
                           onClick={() => {
+                            if (isShopClosed) return;
                             if (!isCustomerLoggedIn) {
                               alert("Please login or sign up before placing order.");
                               window.location.href = "/customer/login?next=/restaurants";
@@ -645,9 +678,9 @@ export default function RestaurantsPage() {
                             }
                             setShowForm(true);
                           }}
-                          style={{ width: "100%", marginTop: "14px", border: "none", borderRadius: "12px", padding: "12px", color: "white", fontWeight: 800, fontSize: "15px", cursor: "pointer", background: selectedRestaurant.gradient }}
+                          style={{ width: "100%", marginTop: "14px", border: "none", borderRadius: "12px", padding: "12px", color: "white", fontWeight: 800, fontSize: "15px", cursor: isShopClosed ? "not-allowed" : "pointer", opacity: isShopClosed ? 0.65 : 1, background: isShopClosed ? "#94a3b8" : selectedRestaurant.gradient }}
                         >
-                          Pay now and place order
+                          {isShopClosed ? "Payment disabled - shop closed" : "Pay now and place order"}
                         </button>
                       ) : (
                         <div style={{ marginTop: "14px" }}>
@@ -691,10 +724,10 @@ export default function RestaurantsPage() {
 
                           <button
                             onClick={handlePayment}
-                            disabled={payLoading}
-                            style={{ width: "100%", marginBottom: "8px", border: "none", borderRadius: "12px", padding: "12px", color: "white", fontWeight: 800, fontSize: "15px", cursor: payLoading ? "not-allowed" : "pointer", opacity: payLoading ? 0.65 : 1, background: "linear-gradient(135deg, #2563eb, #0ea5e9)" }}
+                            disabled={payLoading || isShopClosed}
+                            style={{ width: "100%", marginBottom: "8px", border: "none", borderRadius: "12px", padding: "12px", color: "white", fontWeight: 800, fontSize: "15px", cursor: payLoading || isShopClosed ? "not-allowed" : "pointer", opacity: payLoading || isShopClosed ? 0.65 : 1, background: isShopClosed ? "#94a3b8" : "linear-gradient(135deg, #2563eb, #0ea5e9)" }}
                           >
-                            {payLoading ? "Processing..." : "Pay with Razorpay"}
+                            {isShopClosed ? "Payment disabled - shop closed" : payLoading ? "Processing..." : "Pay with Razorpay"}
                           </button>
                           <button
                             onClick={() => setShowForm(false)}

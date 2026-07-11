@@ -213,7 +213,7 @@ export default function OwnerRestaurantOrdersPage() {
     const loadSettings = async () => {
       try {
         const [shopRes, stockRes] = await Promise.all([
-          fetch("/api/shop-status", { cache: "no-store" }),
+          fetch(`/api/shop-status?restaurantId=${restaurantId}`, { cache: "no-store" }),
           fetch(`/api/stock-status?restaurantId=${restaurantId}`, { cache: "no-store" }),
         ]);
 
@@ -515,7 +515,7 @@ export default function OwnerRestaurantOrdersPage() {
       const res = await fetch("/api/shop-status", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: nextStatus }),
+        body: JSON.stringify({ status: nextStatus, restaurantId }),
       });
 
       const data = await res.json();
