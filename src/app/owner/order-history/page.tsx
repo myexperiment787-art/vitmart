@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Navbar from "@/src/components/Navbar";
+import { mergeBrowserOrders, saveBrowserOrders, BrowserOrder } from "@/src/lib/orderBrowserCache";
 
 type Order = {
   id: string;
@@ -59,6 +60,94 @@ function formatDateTime(timestamp: number) {
   }).format(new Date(timestamp));
 }
 
+function dateKey(timestamp: number) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date(timestamp));
+}
+
+function toBrowserOrder(order: Order): BrowserOrder {
+  return {
+    id: order.id,
+    customerName: order.customerName,
+    customerPhone: order.customerPhone,
+    customerAddress: order.customerAddress,
+    driver: order.driver,
+    items: order.items,
+    itemAmount: order.itemAmount,
+    total: order.total,
+    paymentId: order.paymentId,
+    timestamp: order.timestamp,
+    restaurantName: order.restaurantName,
+    restaurantId: order.restaurantId,
+    status: order.status,
+  };
+}
+
+function toHistoryOrder(order: BrowserOrder): Order {
+  return {
+    id: String(order.id),
+    customerName: String(order.customerName || ""),
+    customerPhone: String(order.customerPhone || ""),
+    customerAddress: order.customerAddress ?? null,
+    driver: order.driver ?? null,
+    items: String(order.items || ""),
+    itemAmount: Number(order.itemAmount || 0),
+    total: Number(order.total || 0),
+    paymentId: order.paymentId ?? null,
+    timestamp: Number(order.timestamp || Date.now()),
+    restaurantName: String(order.restaurantName || "Unknown restaurant"),
+    restaurantId: Number(order.restaurantId || 0),
+    status: String(order.status || "pending"),
+  };
+}
+
+function summarizeOrders(orders: Order[]) {
+  const byRestaurant = Array.from(
+    orders.reduce((map, order) => {
+      const key = String(order.restaurantId || order.restaurantName);
+      const current = map.get(key) || {
+        restaurantId: order.restaurantId,
+        restaurantName: order.restaurantName,
+        orderCount: 0,
+        totalAmount: 0,
+        latestTimestamp: 0,
+      };
+      current.orderCount += 1;
+      current.totalAmount += Number(order.total || 0);
+      current.latestTimestamp = Math.max(current.latestTimestamp, Number(order.timestamp || 0));
+      map.set(key, current);
+      return map;
+    }, new Map<string, RestaurantSummary>())
+  ).map(([, value]) => value);
+
+  const byDate = Array.from(
+    orders.reduce((map, order) => {
+      const key = dateKey(order.timestamp);
+      const current = map.get(key) || { date: key, orderCount: 0, totalAmount: 0 };
+      current.orderCount += 1;
+      current.totalAmount += Number(order.total || 0);
+      map.set(key, current);
+      return map;
+    }, new Map<string, DateSummary>())
+  )
+    .map(([, value]) => value)
+    .sort((a, b) => b.date.localeCompare(a.date));
+
+  return {
+    counts: {
+      totalOrders: orders.length,
+      totalAmount: orders.reduce((sum, order) => sum + Number(order.total || 0), 0),
+      restaurants: byRestaurant.length,
+    },
+    byRestaurant,
+    byDate,
+  };
+}
+
 export default function OwnerOrderHistoryPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [byRestaurant, setByRestaurant] = useState<RestaurantSummary[]>([]);
@@ -92,10 +181,18 @@ export default function OwnerOrderHistoryPage() {
       if (!data.success) throw new Error(data.error || "Unable to load order history");
 
       setIsAuthorized(true);
-      setOrders(Array.isArray(data.orders) ? data.orders : []);
-      setByRestaurant(Array.isArray(data.byRestaurant) ? data.byRestaurant : []);
-      setByDate(Array.isArray(data.byDate) ? data.byDate : []);
-      setCounts(data.counts || { totalOrders: 0, totalAmount: 0, restaurants: 0 });
+      const backendOrders = (Array.isArray(data.orders) ? data.orders : []).map(toHistoryOrder);
+      const mergedOrders = mergeBrowserOrders(backendOrders.map(toBrowserOrder))
+        .map(toHistoryOrder)
+        .filter((order) => (restaurantId ? order.restaurantId === restaurantId : true))
+        .sort((a, b) => Number(b.timestamp) - Number(a.timestamp));
+      if (mergedOrders.length > 0) saveBrowserOrders(mergedOrders.map(toBrowserOrder));
+
+      const summaries = summarizeOrders(mergedOrders);
+      setOrders(mergedOrders);
+      setByRestaurant(summaries.byRestaurant);
+      setByDate(summaries.byDate);
+      setCounts(summaries.counts);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to load order history");
     } finally {

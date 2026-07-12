@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ensureSeedUsers, getUserFromRequest } from "@/src/lib/auth";
+import { isDatabaseConfigured } from "@/src/lib/db";
 import { getOrderHistory } from "@/src/lib/orders";
 import type { AppOrder } from "@/src/lib/orders";
 
@@ -86,6 +87,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
+      persistent: isDatabaseConfigured(),
       counts: {
         totalOrders: orders.length,
         totalAmount: orders.reduce((sum, order) => sum + Number(order.total || 0), 0),
