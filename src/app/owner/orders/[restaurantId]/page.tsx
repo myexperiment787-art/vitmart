@@ -141,6 +141,7 @@ export default function OwnerRestaurantOrdersPage() {
   const [ownerLoginLoading, setOwnerLoginLoading] = useState(false);
   const [ownerAuthError, setOwnerAuthError] = useState<string | null>(null);
   const [settingsWarning, setSettingsWarning] = useState<string | null>(null);
+  const settingsPersistentRef = useRef<boolean | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const oscillatorRef = useRef<OscillatorNode | null>(null);
   const [ringtoneVolume, setRingtoneVolume] = useState(0.9);
@@ -316,6 +317,7 @@ export default function OwnerRestaurantOrdersPage() {
           shopData?.persistent === false || stockData?.persistent === false
             ? "Permanent database is not connected. Changes are cached in this browser and may reset for customers or after deployment."
             : null;
+        settingsPersistentRef.current = persistenceWarning ? false : true;
         setSettingsWarning(persistenceWarning);
 
         const nextShopStatus = shopData.status === "CLOSED" ? "CLOSED" : "OPEN";
@@ -666,14 +668,21 @@ export default function OwnerRestaurantOrdersPage() {
       if (!data.success) {
         throw new Error(data.error || "Failed to update shop status");
       }
-      const savedStatus = data.status === "CLOSED" ? "CLOSED" : "OPEN";
+      const savedStatus = data.persistent === false ? nextStatus : data.status === "CLOSED" ? "CLOSED" : "OPEN";
       setShopStatus(savedStatus);
       writeCachedShopStatus(savedStatus);
       if (data.persistent === false) {
+        settingsPersistentRef.current = false;
         setSettingsWarning("Permanent database is not connected. Changes are cached in this browser and may reset for customers or after deployment.");
       }
     } catch (error) {
       console.error("Failed to update shop status:", error);
+      if (settingsPersistentRef.current === false) {
+        setShopStatus(nextStatus);
+        writeCachedShopStatus(nextStatus);
+        setSettingsWarning("Permanent database is not connected. This change is saved only in this browser until you connect DATABASE_URL in Vercel.");
+        return;
+      }
       setShopStatus(previousStatus);
       writeCachedShopStatus(previousStatus);
       alert("Unable to update shop status right now.");
@@ -716,14 +725,25 @@ export default function OwnerRestaurantOrdersPage() {
       if (!data.success) {
         throw new Error(data.error || "Failed to update item availability");
       }
-      const savedItems = Array.isArray(data.outOfStockItems) ? data.outOfStockItems.map(String) : nextItems;
+      const savedItems = data.persistent === false
+        ? nextItems
+        : Array.isArray(data.outOfStockItems)
+        ? data.outOfStockItems.map(String)
+        : nextItems;
       setOutOfStockItems(savedItems);
       writeCachedStockItems(savedItems);
       if (data.persistent === false) {
+        settingsPersistentRef.current = false;
         setSettingsWarning("Permanent database is not connected. Changes are cached in this browser and may reset for customers or after deployment.");
       }
     } catch (error) {
       console.error("Failed to update item availability:", error);
+      if (settingsPersistentRef.current === false) {
+        setOutOfStockItems(nextItems);
+        writeCachedStockItems(nextItems);
+        setSettingsWarning("Permanent database is not connected. This change is saved only in this browser until you connect DATABASE_URL in Vercel.");
+        return;
+      }
       setOutOfStockItems(previousItems);
       writeCachedStockItems(previousItems);
       alert("Unable to update item availability right now.");

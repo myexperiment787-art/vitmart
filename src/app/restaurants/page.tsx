@@ -116,6 +116,26 @@ const cardBaseStyle: React.CSSProperties = {
   boxShadow: "0 10px 28px rgba(15, 23, 42, 0.08)",
 };
 
+function readBrowserShopStatus(restaurantId: number) {
+  try {
+    const cached = localStorage.getItem(`owner_shop_status_${restaurantId}`);
+    return cached === "CLOSED" ? "CLOSED" : cached === "OPEN" ? "OPEN" : null;
+  } catch {
+    return null;
+  }
+}
+
+function readBrowserStockItems(restaurantId: number) {
+  try {
+    const cached = localStorage.getItem(`owner_stock_items_${restaurantId}`);
+    if (!cached) return null;
+    const parsed = JSON.parse(cached) as unknown;
+    return Array.isArray(parsed) ? parsed.map(String) : null;
+  } catch {
+    return null;
+  }
+}
+
 export default function RestaurantsPage() {
   const { getCart, addToCart, increaseQty, decreaseQty, clearCart } = useCart();
   const [selectedRestaurant, setSelectedRestaurant] = useState<typeof restaurants[0] | null>(null);
@@ -167,9 +187,15 @@ export default function RestaurantsPage() {
       try {
         const res = await fetch(`/api/shop-status?restaurantId=${selectedRestaurant.id}`, { cache: "no-store" });
         const data = await res.json();
+        const cachedStatus = readBrowserShopStatus(selectedRestaurant.id);
+        if (data?.persistent === false && cachedStatus) {
+          setShopOpen(cachedStatus !== "CLOSED");
+          return;
+        }
         setShopOpen(data.status !== "CLOSED");
       } catch {
-        setShopOpen(true);
+        const cachedStatus = readBrowserShopStatus(selectedRestaurant.id);
+        setShopOpen(cachedStatus ? cachedStatus !== "CLOSED" : true);
       }
     };
 
@@ -188,9 +214,14 @@ export default function RestaurantsPage() {
       try {
         const res = await fetch(`/api/stock-status?restaurantId=${selectedRestaurant.id}`, { cache: "no-store" });
         const data = await res.json();
+        const cachedItems = readBrowserStockItems(selectedRestaurant.id);
+        if (data?.persistent === false && cachedItems) {
+          setOutOfStockItems(cachedItems);
+          return;
+        }
         setOutOfStockItems(Array.isArray(data.outOfStockItems) ? data.outOfStockItems : []);
       } catch {
-        setOutOfStockItems([]);
+        setOutOfStockItems(readBrowserStockItems(selectedRestaurant.id) || []);
       }
     };
 
@@ -258,7 +289,8 @@ export default function RestaurantsPage() {
     try {
       const statusRes = await fetch(`/api/shop-status?restaurantId=${selectedRestaurant.id}`, { cache: "no-store" });
       const statusData = await statusRes.json();
-      if (statusData.status === "CLOSED") {
+      const cachedStatus = statusData?.persistent === false ? readBrowserShopStatus(selectedRestaurant.id) : null;
+      if ((cachedStatus || statusData.status) === "CLOSED") {
         setShopOpen(false);
         alert("Sorry, the shop is currently closed. Payment is disabled until it opens again.");
         return;
@@ -266,6 +298,11 @@ export default function RestaurantsPage() {
       setShopOpen(true);
     } catch {
       // Keep the existing page state if the final status check fails.
+    }
+    const blockedItems = cart.filter((item) => isItemListedOutOfStock(item.name, outOfStockItems));
+    if (blockedItems.length > 0) {
+      alert(`${blockedItems.map((item) => item.name).join(", ")} is currently not available.`);
+      return;
     }
     if (cart.length === 0) return alert("Your cart is empty.");
     if (!isCustomerLoggedIn || !loggedCustomerId) {
