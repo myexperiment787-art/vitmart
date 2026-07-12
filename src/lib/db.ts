@@ -40,7 +40,7 @@ export async function initDatabase() {
       CREATE TABLE IF NOT EXISTS app_users (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
-        phone TEXT NOT NULL UNIQUE,
+        phone TEXT NOT NULL,
         role TEXT NOT NULL,
         password_hash TEXT NOT NULL,
         created_at BIGINT NOT NULL,
@@ -75,6 +75,29 @@ export async function initDatabase() {
 
     await pool.query(`ALTER TABLE app_users ADD COLUMN IF NOT EXISTS disabled_at BIGINT`);
     await pool.query(`ALTER TABLE app_users ADD COLUMN IF NOT EXISTS disabled_reason TEXT`);
+    await pool.query(`
+      DO $$
+      DECLARE
+        constraint_record RECORD;
+      BEGIN
+        FOR constraint_record IN
+          SELECT conname
+          FROM pg_constraint
+          WHERE conrelid = 'app_users'::regclass
+            AND contype = 'u'
+            AND array_length(conkey, 1) = 1
+            AND conkey[1] = (
+              SELECT attnum
+              FROM pg_attribute
+              WHERE attrelid = 'app_users'::regclass
+                AND attname = 'phone'
+            )
+        LOOP
+          EXECUTE format('ALTER TABLE app_users DROP CONSTRAINT %I', constraint_record.conname);
+        END LOOP;
+      END $$;
+    `);
+    await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS app_users_phone_role_key ON app_users (phone, role)`);
 
     initialized = true;
   })();

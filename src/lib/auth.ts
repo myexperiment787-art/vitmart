@@ -176,16 +176,62 @@ export async function ensureSeedUsers() {
   ];
 
   for (const seed of seeds) {
-    const exists = await findUserByPhone(seed.phone, seed.role);
-    if (!exists) {
+    await ensureSeedUser(seed);
+  }
+}
+
+async function ensureSeedUser(seed: SeedUser) {
+  const normalizedPhone = normalizePhone(seed.phone);
+
+  if (!isDatabaseConfigured()) {
+    const users = readLocalUsers();
+    const idx = users.findIndex((user) => user.phone === normalizedPhone && user.role === seed.role);
+    if (idx < 0) {
       await createUser({
         name: seed.name,
-        phone: seed.phone,
+        phone: normalizedPhone,
         password: seed.password,
         role: seed.role,
       });
+      return;
     }
+
+    const existing = users[idx];
+    const passwordMatches = await bcrypt.compare(seed.password, existing.password_hash);
+    if (passwordMatches && existing.name === seed.name) return;
+
+    users[idx] = {
+      ...existing,
+      name: seed.name,
+      password_hash: passwordMatches ? existing.password_hash : await bcrypt.hash(seed.password, 10),
+    };
+    writeLocalUsers(users);
+    return;
   }
+
+  const existing = await query<DbUserRow>(
+    `SELECT * FROM app_users WHERE phone = $1 AND role = $2 LIMIT 1`,
+    [normalizedPhone, seed.role]
+  );
+  const row = existing.rows[0];
+
+  if (!row) {
+    await createUser({
+      name: seed.name,
+      phone: normalizedPhone,
+      password: seed.password,
+      role: seed.role,
+    });
+    return;
+  }
+
+  const passwordMatches = await bcrypt.compare(seed.password, row.password_hash);
+  if (passwordMatches && row.name === seed.name) return;
+
+  await query(
+    `UPDATE app_users SET name = $1, password_hash = $2 WHERE id = $3`,
+    [seed.name, passwordMatches ? row.password_hash : await bcrypt.hash(seed.password, 10), row.id]
+  );
 }
 
 export async function createUser(input: { name: string; phone: string; password: string; role: UserRole }) {
