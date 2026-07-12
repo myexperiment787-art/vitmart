@@ -131,6 +131,11 @@ export default function OwnerRestaurantOrdersPage() {
   const [outOfStockItems, setOutOfStockItems] = useState<string[]>([]);
   const [savingShopStatus, setSavingShopStatus] = useState(false);
   const [savingItemName, setSavingItemName] = useState<string | null>(null);
+  const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
+  const [ownerPhone, setOwnerPhone] = useState("");
+  const [ownerPassword, setOwnerPassword] = useState("");
+  const [ownerLoginLoading, setOwnerLoginLoading] = useState(false);
+  const [ownerAuthError, setOwnerAuthError] = useState<string | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const oscillatorRef = useRef<OscillatorNode | null>(null);
   const [ringtoneVolume, setRingtoneVolume] = useState(0.9);
@@ -167,6 +172,46 @@ export default function OwnerRestaurantOrdersPage() {
     try {
       sessionStorage.setItem(seenOrderIdsStorageKey, JSON.stringify(Array.from(ids)));
     } catch {}
+  };
+
+  const requireOwnerLogin = (message = "Owner login is required to manage this restaurant.") => {
+    setIsAuthorized(false);
+    setOwnerAuthError(message);
+  };
+
+  const onOwnerLogin = async () => {
+    setOwnerAuthError(null);
+    if (ownerPhone.replace(/\D/g, "").length !== 10) {
+      setOwnerAuthError("Enter a valid 10-digit owner phone number");
+      return;
+    }
+    if (!ownerPassword.trim()) {
+      setOwnerAuthError("Enter owner password");
+      return;
+    }
+
+    try {
+      setOwnerLoginLoading(true);
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ phone: ownerPhone, password: ownerPassword, role: "owner" }),
+      });
+      const data = await res.json();
+      if (!data.success) {
+        setOwnerAuthError(data.error || "Owner login failed");
+        return;
+      }
+
+      setOwnerPassword("");
+      setOwnerAuthError(null);
+      setIsAuthorized(true);
+    } catch {
+      setOwnerAuthError("Unable to login right now");
+    } finally {
+      setOwnerLoginLoading(false);
+    }
   };
 
   const enableAudio = async () => {
@@ -353,10 +398,25 @@ export default function OwnerRestaurantOrdersPage() {
 
   useEffect(() => {
     const loadOrders = async () => {
+      if (isAuthorized === false) return;
+
       const startedAt = Date.now();
       try {
-        const res = await fetch(`/api/owner/orders?restaurantId=${restaurantId}`);
+        const res = await fetch(`/api/owner/orders?restaurantId=${restaurantId}`, {
+          cache: "no-store",
+          credentials: "include",
+        });
+        if (res.status === 401) {
+          setOrders([]);
+          requireOwnerLogin();
+          return;
+        }
+
         const data = await res.json();
+        if (!data.success) throw new Error(data.error || "Failed to load orders");
+        setIsAuthorized(true);
+        setOwnerAuthError(null);
+
         const orderList: Order[] = (data.orders || []).filter(
           (o: Order) => o.restaurantId === restaurantId
         );
@@ -447,6 +507,9 @@ export default function OwnerRestaurantOrdersPage() {
         setFormattedTimes(times);
       } catch (error) {
         console.error("Failed to load orders:", error);
+        if (isAuthorized === null) {
+          requireOwnerLogin("Unable to verify owner login. Please login again.");
+        }
       }
     };
 
@@ -454,7 +517,7 @@ export default function OwnerRestaurantOrdersPage() {
     loadOrders();
     const interval = setInterval(loadOrders, 2000); // Check every 2 seconds
     return () => clearInterval(interval);
-  }, [restaurantId, audioEnabled]);
+  }, [restaurantId, audioEnabled, isAuthorized]);
 
   const markOrderAsAccepted = async (orderId: string) => {
     setOrders((prev) => {
@@ -475,7 +538,15 @@ export default function OwnerRestaurantOrdersPage() {
       await fetch("/api/owner/orders", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ orderId, status: "accepted" }),
+      }).then(async (res) => {
+        if (res.status === 401) {
+          requireOwnerLogin("Owner login expired. Please login again.");
+          return;
+        }
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || "Failed to update order status");
       });
     } catch (error) {
       console.error("Failed to update order status:", error);
@@ -499,7 +570,15 @@ export default function OwnerRestaurantOrdersPage() {
       await fetch("/api/owner/orders", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ orderId, status: "completed" }),
+      }).then(async (res) => {
+        if (res.status === 401) {
+          requireOwnerLogin("Owner login expired. Please login again.");
+          return;
+        }
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || "Failed to complete order");
       });
     } catch (error) {
       console.error("Failed to complete order:", error);
@@ -515,9 +594,14 @@ export default function OwnerRestaurantOrdersPage() {
       const res = await fetch("/api/shop-status", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ status: nextStatus, restaurantId }),
       });
 
+      if (res.status === 401) {
+        requireOwnerLogin("Owner login expired. Please login again.");
+        throw new Error("Unauthorized");
+      }
       const data = await res.json();
       if (!data.success) {
         throw new Error(data.error || "Failed to update shop status");
@@ -545,6 +629,7 @@ export default function OwnerRestaurantOrdersPage() {
       const res = await fetch("/api/stock-status", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           restaurantId,
           itemName,
@@ -552,6 +637,10 @@ export default function OwnerRestaurantOrdersPage() {
         }),
       });
 
+      if (res.status === 401) {
+        requireOwnerLogin("Owner login expired. Please login again.");
+        throw new Error("Unauthorized");
+      }
       const data = await res.json();
       if (!data.success) {
         throw new Error(data.error || "Failed to update item availability");
@@ -569,6 +658,49 @@ export default function OwnerRestaurantOrdersPage() {
 
   const pendingOrders = orders.filter((o) => o.status === "pending");
   const readyOrders = orders.filter((o) => o.status === "accepted" || o.status === "picked");
+
+  if (isAuthorized === false) {
+    return (
+      <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", background: "linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%)", padding: "24px" }}>
+        <section style={{ width: "100%", maxWidth: "460px", background: "white", border: "1px solid #dbe4f0", borderRadius: "16px", padding: "24px", boxShadow: "0 14px 34px rgba(15,23,42,0.1)" }}>
+          <h1 style={{ margin: 0, color: "#0f172a", fontSize: "28px", fontWeight: 900 }}>{restaurantName} Owner Login</h1>
+          <p style={{ margin: "8px 0 0", color: "#64748b", fontSize: "14px", lineHeight: 1.5 }}>
+            Login as owner to view orders, close the shop, and mark items unavailable.
+          </p>
+          <input
+            type="tel"
+            value={ownerPhone}
+            onChange={(e) => setOwnerPhone(e.target.value.replace(/[^0-9]/g, "").slice(0, 10))}
+            placeholder="Owner phone number"
+            style={{ width: "100%", marginTop: "18px", border: "1px solid #cbd5e1", borderRadius: "10px", padding: "12px", fontSize: "14px", boxSizing: "border-box" }}
+          />
+          <input
+            type="password"
+            value={ownerPassword}
+            onChange={(e) => setOwnerPassword(e.target.value)}
+            placeholder="Owner password"
+            style={{ width: "100%", marginTop: "10px", border: "1px solid #cbd5e1", borderRadius: "10px", padding: "12px", fontSize: "14px", boxSizing: "border-box" }}
+          />
+          {ownerAuthError ? <p style={{ color: "#dc2626", fontSize: "13px", fontWeight: 700, marginTop: "10px" }}>{ownerAuthError}</p> : null}
+          <button
+            onClick={onOwnerLogin}
+            disabled={ownerLoginLoading}
+            style={{ width: "100%", marginTop: "14px", border: "none", borderRadius: "12px", padding: "12px", color: "white", fontWeight: 900, background: "linear-gradient(135deg, #0f766e, #2563eb)", cursor: ownerLoginLoading ? "not-allowed" : "pointer", opacity: ownerLoginLoading ? 0.7 : 1 }}
+          >
+            {ownerLoginLoading ? "Logging in..." : "Login"}
+          </button>
+        </section>
+      </div>
+    );
+  }
+
+  if (isAuthorized === null) {
+    return (
+      <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", background: "#f8fafc", color: "#475569", fontWeight: 800 }}>
+        Checking owner login...
+      </div>
+    );
+  }
 
   return (
     <>
