@@ -451,17 +451,39 @@ export async function getUserFromSessionToken(token: string) {
   if (!isDatabaseConfigured()) {
     const session = readLocalSessionToken(token);
     if (!session) return null;
-    const user = readLocalUsers().find((entry) => entry.id === session.userId);
-    if (!user || user.disabled_at) return null;
-    return {
-      id: user.id,
-      name: user.name,
-      phone: user.phone,
-      role: user.role as UserRole,
-      created_at: user.created_at,
-      disabled_at: user.disabled_at ?? null,
-      disabled_reason: user.disabled_reason ?? null,
-    } as AppUser;
+    const users = readLocalUsers();
+    const user =
+      users.find((entry) => entry.id === session.userId) ||
+      (session.user
+        ? users.find((entry) => entry.phone === session.user?.phone && entry.role === session.user?.role)
+        : null);
+
+    if (user) {
+      if (user.disabled_at) return null;
+      return {
+        id: user.id,
+        name: user.name,
+        phone: user.phone,
+        role: user.role as UserRole,
+        created_at: user.created_at,
+        disabled_at: user.disabled_at ?? null,
+        disabled_reason: user.disabled_reason ?? null,
+      } as AppUser;
+    }
+
+    if (session.user) {
+      return {
+        id: session.user.id,
+        name: session.user.name,
+        phone: session.user.phone,
+        role: session.user.role,
+        created_at: session.user.created_at,
+        disabled_at: session.user.disabled_at ?? null,
+        disabled_reason: session.user.disabled_reason ?? null,
+      } as AppUser;
+    }
+
+    return null;
   }
 
   const result = await query<SessionRow & DbUserRow>(

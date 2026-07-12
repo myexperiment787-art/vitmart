@@ -32,6 +32,7 @@ export default function CustomerLoginPage() {
       const res = await fetch("/api/customer/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ phone, password }),
       });
       const data = await res.json();

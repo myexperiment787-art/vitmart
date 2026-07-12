@@ -37,6 +37,7 @@ export default function CustomerSignupPage() {
       const res = await fetch("/api/customer/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ name, phone, password }),
       });
       const data = await res.json();

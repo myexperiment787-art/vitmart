@@ -32,6 +32,7 @@ export default function DeliveryLoginPage() {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ phone, password, role: "delivery" }),
       });
       const data = await res.json();
