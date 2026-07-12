@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ensureSeedUsers, getUserFromRequest, normalizePhone } from "@/src/lib/auth";
 import { claimOrderForDelivery, getOrderById, getOrdersByRestaurant, updateOrder } from "@/src/lib/orders";
+import { isDatabaseConfigured } from "@/src/lib/db";
 import { formatOrderDate, postOrderToSheet } from "../../googleSheetHelper";
 import type { AppOrder } from "@/src/lib/orders";
 
@@ -69,6 +70,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
+      persistent: isDatabaseConfigured(),
       deliveryUser: {
         id: user.id,
         name: user.name,
@@ -106,11 +108,17 @@ export async function PATCH(req: NextRequest) {
 
     const order = await getOrderById(String(orderId));
     if (!order) {
-      return NextResponse.json({ success: false, error: "Order not found" }, { status: 404 });
+      return NextResponse.json(
+        { success: false, error: "Order not found", persistent: isDatabaseConfigured() },
+        { status: 404 }
+      );
     }
 
     if (order.driver && !isAssignedToDeliveryUser(order.driver, user)) {
-      return NextResponse.json({ success: false, error: "This order is assigned to another delivery boy" }, { status: 403 });
+      return NextResponse.json(
+        { success: false, error: "This order is assigned to another delivery boy", persistent: isDatabaseConfigured() },
+        { status: 403 }
+      );
     }
 
     const nextDriver = assignToMe || nextStatus === "picked" || nextStatus === "completed" ? deliveryDriverLabel(user) : undefined;
@@ -122,7 +130,12 @@ export async function PATCH(req: NextRequest) {
 
       if (!claim.claimed) {
         return NextResponse.json(
-          { success: false, error: "This order was already accepted by another delivery boy", driver: claim.order?.driver || null },
+          {
+            success: false,
+            error: "This order was already accepted by another delivery boy",
+            driver: claim.order?.driver || null,
+            persistent: isDatabaseConfigured(),
+          },
           { status: 409 }
         );
       }
@@ -134,20 +147,31 @@ export async function PATCH(req: NextRequest) {
     }
 
     if (nextDriver && order.restaurant_id && order.restaurant_id > 0) {
-      await postOrderToSheet(order.restaurant_id, {
-        orderDate: formatOrderDate(Number(order.timestamp)),
-        customerName: order.customer_name || "Not provided",
-        items: order.items || "Not provided",
-        deliveryAddress: order.customer_address || "Not provided",
-        deliveryBoy: nextDriver,
-        totalAmount: Number(order.total),
-        orderId: order.id,
-      });
+      try {
+        await postOrderToSheet(order.restaurant_id, {
+          orderDate: formatOrderDate(Number(order.timestamp)),
+          customerName: order.customer_name || "Not provided",
+          items: order.items || "Not provided",
+          deliveryAddress: order.customer_address || "Not provided",
+          deliveryBoy: nextDriver,
+          totalAmount: Number(order.total),
+          orderId: order.id,
+        });
+      } catch (sheetError) {
+        console.error("Failed to update delivery boy in Google Sheet:", sheetError);
+      }
     }
 
-    return NextResponse.json({ success: true, driver: nextDriver || order.driver || null });
+    return NextResponse.json({
+      success: true,
+      driver: nextDriver || order.driver || null,
+      persistent: isDatabaseConfigured(),
+    });
   } catch (error) {
     console.error("Error updating delivery order:", error);
-    return NextResponse.json({ success: false, error: "Failed to update delivery order" }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: "Failed to update delivery order", persistent: isDatabaseConfigured() },
+      { status: 500 }
+    );
   }
 }

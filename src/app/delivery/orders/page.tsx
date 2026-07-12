@@ -1,5 +1,6 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { mergeBrowserOrders, saveBrowserOrders, BrowserOrder } from "@/src/lib/orderBrowserCache";
 
 type Order = {
   id: string;
@@ -23,6 +24,58 @@ type DeliveryUser = {
   driverLabel: string;
 };
 
+function toBrowserOrder(order: Order): BrowserOrder {
+  return {
+    id: order.id,
+    customerName: order.customerName,
+    customerPhone: order.customerPhone,
+    customerAddress: order.customerAddress,
+    items: order.items,
+    itemAmount: order.itemAmount,
+    total: order.total,
+    timestamp: order.timestamp,
+    restaurantName: order.restaurantName,
+    restaurantId: order.restaurantId,
+    status: order.status,
+    driver: order.driver || null,
+  };
+}
+
+function toDeliveryOrder(order: BrowserOrder): Order {
+  return {
+    id: String(order.id),
+    customerName: String(order.customerName || ""),
+    customerPhone: String(order.customerPhone || ""),
+    customerAddress: order.customerAddress ?? undefined,
+    items: String(order.items || ""),
+    itemAmount: order.itemAmount,
+    total: Number(order.total || 0),
+    timestamp: Number(order.timestamp || Date.now()),
+    restaurantName: String(order.restaurantName || ""),
+    restaurantId: Number(order.restaurantId || 0),
+    status: String(order.status || "pending"),
+    driver: order.driver || undefined,
+  };
+}
+
+function phoneDigits(value: string) {
+  const digits = value.replace(/\D/g, "");
+  return digits.length === 12 && digits.startsWith("91") ? digits.slice(2) : digits;
+}
+
+function isAssignedToDeliveryUser(orderDriver: string | null | undefined, user: DeliveryUser) {
+  if (!orderDriver) return false;
+  const driverPhone = phoneDigits(orderDriver);
+  if (driverPhone && driverPhone === phoneDigits(user.phone)) return true;
+  return orderDriver.trim().toLowerCase() === user.name.trim().toLowerCase();
+}
+
+function canShowOrder(order: Order, user: DeliveryUser | null) {
+  if (!user) return true;
+  if (!order.driver) return order.status !== "completed";
+  return isAssignedToDeliveryUser(order.driver, user);
+}
+
 export default function DeliveryOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [deliveryUser, setDeliveryUser] = useState<DeliveryUser | null>(null);
@@ -31,6 +84,7 @@ export default function DeliveryOrdersPage() {
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [toasts, setToasts] = useState<{ id: string; text: string }[]>([]);
   const ordersRef = useRef<Order[]>([]);
+  const ordersPersistentRef = useRef<boolean | null>(null);
 
   const showToast = useCallback((text: string) => {
     const id = `t_${Date.now()}_${Math.random().toString(36).slice(2,8)}`;
@@ -55,11 +109,16 @@ export default function DeliveryOrdersPage() {
       }
 
       setDeliveryUser(data.deliveryUser || null);
-      const all: Order[] = data.orders || [];
-      const sorted = all.sort((a, b) => b.timestamp - a.timestamp).map((order) => ({
+      ordersPersistentRef.current = data.persistent !== false;
+      const backendOrders: Order[] = Array.isArray(data.orders) ? data.orders : [];
+      const mergedOrders = mergeBrowserOrders(backendOrders.map(toBrowserOrder))
+        .map(toDeliveryOrder)
+        .filter((order) => canShowOrder(order, data.deliveryUser || null));
+      const sorted = mergedOrders.sort((a, b) => b.timestamp - a.timestamp).map((order) => ({
         ...order,
         customerAddress: order.customerAddress ?? undefined,
       })) as Order[];
+      if (sorted.length > 0) saveBrowserOrders(sorted.map(toBrowserOrder));
       ordersRef.current = sorted;
       setOrders(sorted);
     } catch (e) {
@@ -82,13 +141,15 @@ export default function DeliveryOrdersPage() {
   }, [load]);
 
   const updateStatus = async (orderId: string, status: string) => {
-    const nextOrders = orders.map((order) =>
+    const previousOrders = ordersRef.current.length > 0 ? ordersRef.current : orders;
+    const nextOrders = previousOrders.map((order) =>
       order.id === orderId
         ? { ...order, status, ...(status === "picked" && deliveryUser ? { driver: deliveryUser.driverLabel } : {}) }
         : order
     );
     ordersRef.current = nextOrders;
     setOrders(nextOrders);
+    saveBrowserOrders(nextOrders.map(toBrowserOrder));
 
     setUpdating(orderId);
     void (async () => {
@@ -108,23 +169,54 @@ export default function DeliveryOrdersPage() {
         if (!res.ok) {
           const data = await res.json().catch(() => null);
           console.warn("[delivery/orders] backend status update failed", { orderId, status, httpStatus: res.status, error: data?.error });
+          if (data?.persistent === false || ordersPersistentRef.current === false) {
+            showToast("Saved on this browser. Connect DATABASE_URL for permanent delivery updates.");
+            return;
+          }
           showToast(data?.error || "Could not update order status");
+          ordersRef.current = previousOrders;
+          setOrders(previousOrders);
+          saveBrowserOrders(previousOrders.map(toBrowserOrder));
           await load();
           return;
         }
 
         const data = await res.json().catch(() => null);
+        if (data?.persistent === false) ordersPersistentRef.current = false;
         if (data && data.success === false) {
           console.warn("[delivery/orders] backend status update returned failure", data.error || data);
+          if (data.persistent === false || ordersPersistentRef.current === false) {
+            showToast("Saved on this browser. Connect DATABASE_URL for permanent delivery updates.");
+            return;
+          }
           showToast(data.error || "Could not update order status");
+          ordersRef.current = previousOrders;
+          setOrders(previousOrders);
+          saveBrowserOrders(previousOrders.map(toBrowserOrder));
           await load();
           return;
         }
 
-        showToast(status === "picked" ? "Marked picked" : status === "completed" ? "Marked delivered" : "Status updated");
+        saveBrowserOrders(ordersRef.current.map(toBrowserOrder));
+        showToast(
+          data?.persistent === false
+            ? "Saved on this browser. Connect DATABASE_URL for permanent delivery updates."
+            : status === "picked"
+            ? "Marked picked"
+            : status === "completed"
+            ? "Marked delivered"
+            : "Status updated"
+        );
       } catch (e) {
         console.error("Failed to update order status", e);
+        if (ordersPersistentRef.current === false) {
+          showToast("Saved on this browser. Connect DATABASE_URL for permanent delivery updates.");
+          return;
+        }
         showToast("Could not save status. Please try again.");
+        ordersRef.current = previousOrders;
+        setOrders(previousOrders);
+        saveBrowserOrders(previousOrders.map(toBrowserOrder));
         await load();
       } finally {
         setUpdating(null);
