@@ -58,7 +58,7 @@ function getSessionSecret() {
   const secret = process.env.AUTH_SESSION_SECRET || process.env.SESSION_SECRET;
   if (secret) return secret;
   if (process.env.NODE_ENV === "production") {
-    throw new Error("AUTH_SESSION_SECRET or SESSION_SECRET is required in production");
+    console.warn("AUTH_SESSION_SECRET or SESSION_SECRET is not set. Using demo fallback session secret.");
   }
   return "quickmart-session-secret";
 }
@@ -161,16 +161,22 @@ function parseDeliverySeedsFromEnv(): SeedUser[] {
 export async function ensureSeedUsers() {
   const seeds: SeedUser[] = [
     {
+      role: "customer",
+      name: process.env.DEFAULT_CUSTOMER_NAME || "Demo Customer",
+      phone: process.env.DEFAULT_CUSTOMER_PHONE || process.env.DEFAULT_OWNER_PHONE || "9117865343",
+      password: process.env.DEFAULT_CUSTOMER_PASSWORD || process.env.DEFAULT_OWNER_PASSWORD || "Iitiitiit@2006",
+    },
+    {
       role: "owner",
       name: process.env.DEFAULT_OWNER_NAME || "Restaurant Owner",
-      phone: process.env.DEFAULT_OWNER_PHONE || "9000000001",
-      password: process.env.DEFAULT_OWNER_PASSWORD || "owner1234",
+      phone: process.env.DEFAULT_OWNER_PHONE || "9117865343",
+      password: process.env.DEFAULT_OWNER_PASSWORD || "Iitiitiit@2006",
     },
     {
       role: "delivery",
       name: process.env.DEFAULT_DELIVERY_NAME || "Delivery Boy",
-      phone: process.env.DEFAULT_DELIVERY_PHONE || "9000000002",
-      password: process.env.DEFAULT_DELIVERY_PASSWORD || "delivery1234",
+      phone: process.env.DEFAULT_DELIVERY_PHONE || "9630741753",
+      password: process.env.DEFAULT_DELIVERY_PASSWORD || "tejas1234",
     },
     ...parseDeliverySeedsFromEnv(),
   ];

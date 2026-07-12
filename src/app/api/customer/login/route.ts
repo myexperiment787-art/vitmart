@@ -68,7 +68,8 @@ export async function POST(req: NextRequest) {
       secure: process.env.NODE_ENV === "production",
     });
     return response;
-  } catch {
+  } catch (error) {
+    console.error("Customer login error:", error);
     return NextResponse.json({ success: false, error: "Login failed" }, { status: 500 });
   }
 }
