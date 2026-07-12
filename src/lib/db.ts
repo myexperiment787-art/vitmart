@@ -71,6 +71,12 @@ export async function initDatabase() {
         status TEXT NOT NULL,
         driver TEXT
       );
+
+      CREATE TABLE IF NOT EXISTS app_owner_settings (
+        key TEXT PRIMARY KEY,
+        value JSONB NOT NULL,
+        updated_at BIGINT NOT NULL
+      );
     `);
 
     await pool.query(`ALTER TABLE app_users ADD COLUMN IF NOT EXISTS disabled_at BIGINT`);

@@ -12,12 +12,12 @@ export async function GET(req: NextRequest) {
     const restaurantId = searchParams.get("restaurantId");
     const parsedRestaurantId = restaurantId ? Number.parseInt(restaurantId) : undefined;
     const sheetItems = await fetchOutOfStockItemsFromSheet(parsedRestaurantId);
-    const localItems = getOutOfStockItems(parsedRestaurantId);
-    const outOfStockItems = mergeOutOfStockItems(sheetItems, localItems);
+    const savedItems = await getOutOfStockItems(parsedRestaurantId);
+    const outOfStockItems = mergeOutOfStockItems(sheetItems, savedItems);
 
     return NextResponse.json({
       outOfStockItems,
-      source: sheetItems ? "google-sheet+local" : "local",
+      source: sheetItems ? "google-sheet+saved" : "saved",
     });
 
   } catch (error) {
@@ -38,7 +38,7 @@ export async function PATCH(req: NextRequest) {
     const restaurantId = Number.parseInt(String(body.restaurantId || ""));
 
     if (body.restaurantId && body.itemName) {
-      const nextItems = toggleRestaurantItemAvailability(
+      const nextItems = await toggleRestaurantItemAvailability(
         restaurantId,
         String(body.itemName),
         body.available !== false
@@ -48,11 +48,11 @@ export async function PATCH(req: NextRequest) {
 
     if (Array.isArray(body.outOfStockItems)) {
       if (body.restaurantId) {
-        const nextItems = setRestaurantOutOfStockItems(restaurantId, body.outOfStockItems.map(String));
+        const nextItems = await setRestaurantOutOfStockItems(restaurantId, body.outOfStockItems.map(String));
         return NextResponse.json({ success: true, outOfStockItems: nextItems });
       }
 
-      const nextItems = setGlobalOutOfStockItems(body.outOfStockItems.map(String));
+      const nextItems = await setGlobalOutOfStockItems(body.outOfStockItems.map(String));
       return NextResponse.json({ success: true, outOfStockItems: nextItems });
     }
 

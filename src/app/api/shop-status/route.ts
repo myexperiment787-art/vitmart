@@ -13,15 +13,15 @@ export async function GET(req: NextRequest) {
 
     if (Number.isFinite(restaurantId)) {
       return NextResponse.json({
-        status: getShopStatus(restaurantId),
-        source: "local-restaurant",
+        status: await getShopStatus(restaurantId),
+        source: "saved-restaurant",
       });
     }
 
     const sheetStatus = await fetchShopStatusFromSheet();
-    const status = sheetStatus || getShopStatus();
+    const status = sheetStatus || await getShopStatus();
 
-    return NextResponse.json({ status, source: sheetStatus ? "google-sheet" : "local" });
+    return NextResponse.json({ status, source: sheetStatus ? "google-sheet" : "saved" });
 
   } catch (error) {
     console.error("Shop status error:", error);
@@ -40,7 +40,7 @@ export async function PATCH(req: NextRequest) {
     const { status, restaurantId } = await req.json();
     const parsedRestaurantId = Number.parseInt(String(restaurantId || ""));
     const nextStatus = status === "CLOSED" ? "CLOSED" : "OPEN";
-    const savedStatus = setShopStatus(
+    const savedStatus = await setShopStatus(
       nextStatus,
       Number.isFinite(parsedRestaurantId) ? parsedRestaurantId : undefined
     );
