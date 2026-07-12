@@ -23,6 +23,10 @@ const DATA_DIR = getDataDir();
 const OWNER_SETTINGS_FILE = path.join(DATA_DIR, "owner-settings.json");
 const OWNER_SETTINGS_KEY = "owner-settings";
 
+export function ownerSettingsPersistenceSource() {
+  return isDatabaseConfigured() ? "database" : "local-file";
+}
+
 function ensureDataDir() {
   if (!fs.existsSync(DATA_DIR)) {
     fs.mkdirSync(DATA_DIR, { recursive: true });

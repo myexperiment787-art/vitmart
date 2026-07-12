@@ -1,5 +1,5 @@
 "use client";
-import { useRef, useState, useEffect } from "react";
+import { useCallback, useRef, useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { mergeBrowserOrders, saveBrowserOrders, BrowserOrder } from "@/src/lib/orderBrowserCache";
 import { isItemListedOutOfStock, normalizeMenuItemName } from "@/src/lib/itemAvailability";
@@ -118,6 +118,8 @@ export default function OwnerRestaurantOrdersPage() {
   const restaurantName = restaurantNames[restaurantId] || "Unknown Restaurant";
   const lastOrderCountStorageKey = `owner_last_order_count_${restaurantId}`;
   const ordersStorageKey = `owner_orders_cache_${restaurantId}`;
+  const shopStatusCacheKey = `owner_shop_status_${restaurantId}`;
+  const stockItemsCacheKey = `owner_stock_items_${restaurantId}`;
   const debugOrderNotifications = true;
 
   const [orders, setOrders] = useState<Order[]>([]);
@@ -131,11 +133,14 @@ export default function OwnerRestaurantOrdersPage() {
   const [outOfStockItems, setOutOfStockItems] = useState<string[]>([]);
   const [savingShopStatus, setSavingShopStatus] = useState(false);
   const [savingItemName, setSavingItemName] = useState<string | null>(null);
+  const savingShopStatusRef = useRef(false);
+  const savingItemNameRef = useRef<string | null>(null);
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
   const [ownerPhone, setOwnerPhone] = useState("");
   const [ownerPassword, setOwnerPassword] = useState("");
   const [ownerLoginLoading, setOwnerLoginLoading] = useState(false);
   const [ownerAuthError, setOwnerAuthError] = useState<string | null>(null);
+  const [settingsWarning, setSettingsWarning] = useState<string | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const oscillatorRef = useRef<OscillatorNode | null>(null);
   const [ringtoneVolume, setRingtoneVolume] = useState(0.9);
@@ -173,6 +178,38 @@ export default function OwnerRestaurantOrdersPage() {
       sessionStorage.setItem(seenOrderIdsStorageKey, JSON.stringify(Array.from(ids)));
     } catch {}
   };
+
+  const readCachedShopStatus = useCallback(() => {
+    try {
+      const cached = localStorage.getItem(shopStatusCacheKey);
+      return cached === "CLOSED" ? "CLOSED" : cached === "OPEN" ? "OPEN" : null;
+    } catch {
+      return null;
+    }
+  }, [shopStatusCacheKey]);
+
+  const writeCachedShopStatus = useCallback((status: "OPEN" | "CLOSED") => {
+    try {
+      localStorage.setItem(shopStatusCacheKey, status);
+    } catch {}
+  }, [shopStatusCacheKey]);
+
+  const readCachedStockItems = useCallback(() => {
+    try {
+      const cached = localStorage.getItem(stockItemsCacheKey);
+      if (!cached) return null;
+      const parsed = JSON.parse(cached) as unknown;
+      return Array.isArray(parsed) ? parsed.map(String) : null;
+    } catch {
+      return null;
+    }
+  }, [stockItemsCacheKey]);
+
+  const writeCachedStockItems = useCallback((items: string[]) => {
+    try {
+      localStorage.setItem(stockItemsCacheKey, JSON.stringify(items));
+    } catch {}
+  }, [stockItemsCacheKey]);
 
   const requireOwnerLogin = (message = "Owner login is required to manage this restaurant.") => {
     setIsAuthorized(false);
@@ -257,25 +294,45 @@ export default function OwnerRestaurantOrdersPage() {
   useEffect(() => {
     const loadSettings = async () => {
       try {
+        if (savingShopStatusRef.current || savingItemNameRef.current) return;
+
+        const cachedShopStatus = readCachedShopStatus();
+        const cachedStockItems = readCachedStockItems();
+        if (cachedShopStatus) setShopStatus(cachedShopStatus);
+        if (cachedStockItems) setOutOfStockItems(cachedStockItems);
+
         const [shopRes, stockRes] = await Promise.all([
           fetch(`/api/shop-status?restaurantId=${restaurantId}`, { cache: "no-store" }),
           fetch(`/api/stock-status?restaurantId=${restaurantId}`, { cache: "no-store" }),
         ]);
 
-        const shopData = await shopRes.json();
-        const stockData = await stockRes.json();
+        const shopData = await shopRes.json().catch(() => null);
+        const stockData = await stockRes.json().catch(() => null);
+        if (!shopRes.ok || !stockRes.ok || shopData?.success === false || stockData?.success === false) {
+          throw new Error(shopData?.error || stockData?.error || "Failed to load settings");
+        }
 
-        setShopStatus(shopData.status === "CLOSED" ? "CLOSED" : "OPEN");
-        setOutOfStockItems(Array.isArray(stockData.outOfStockItems) ? stockData.outOfStockItems : []);
+        const persistenceWarning =
+          shopData?.persistent === false || stockData?.persistent === false
+            ? "Permanent database is not connected. Changes are cached in this browser and may reset for customers or after deployment."
+            : null;
+        setSettingsWarning(persistenceWarning);
+
+        const nextShopStatus = shopData.status === "CLOSED" ? "CLOSED" : "OPEN";
+        const nextStockItems = Array.isArray(stockData.outOfStockItems) ? stockData.outOfStockItems.map(String) : [];
+
+        setShopStatus(shopData?.persistent === false && cachedShopStatus ? cachedShopStatus : nextShopStatus);
+        setOutOfStockItems(stockData?.persistent === false && cachedStockItems ? cachedStockItems : nextStockItems);
       } catch (error) {
         console.error("Failed to load shop settings:", error);
+        setSettingsWarning("Unable to refresh shop settings right now. The page is keeping the last value shown here.");
       }
     };
 
     loadSettings();
     const interval = setInterval(loadSettings, 10000);
     return () => clearInterval(interval);
-  }, [restaurantId]);
+  }, [restaurantId, readCachedShopStatus, readCachedStockItems]);
 
   const playRingtone = () => {
     const audioContext = getAudioContext();
@@ -586,9 +643,12 @@ export default function OwnerRestaurantOrdersPage() {
   };
 
   const toggleShopStatus = async () => {
+    const previousStatus = shopStatus;
     const nextStatus = shopStatus === "OPEN" ? "CLOSED" : "OPEN";
+    savingShopStatusRef.current = true;
     setSavingShopStatus(true);
     setShopStatus(nextStatus);
+    writeCachedShopStatus(nextStatus);
 
     try {
       const res = await fetch("/api/shop-status", {
@@ -606,24 +666,35 @@ export default function OwnerRestaurantOrdersPage() {
       if (!data.success) {
         throw new Error(data.error || "Failed to update shop status");
       }
+      const savedStatus = data.status === "CLOSED" ? "CLOSED" : "OPEN";
+      setShopStatus(savedStatus);
+      writeCachedShopStatus(savedStatus);
+      if (data.persistent === false) {
+        setSettingsWarning("Permanent database is not connected. Changes are cached in this browser and may reset for customers or after deployment.");
+      }
     } catch (error) {
       console.error("Failed to update shop status:", error);
-      setShopStatus(nextStatus === "OPEN" ? "CLOSED" : "OPEN");
+      setShopStatus(previousStatus);
+      writeCachedShopStatus(previousStatus);
       alert("Unable to update shop status right now.");
     } finally {
+      savingShopStatusRef.current = false;
       setSavingShopStatus(false);
     }
   };
 
   const toggleItemAvailability = async (itemName: string) => {
+    const previousItems = outOfStockItems;
     const nextAvailable = isItemListedOutOfStock(itemName, outOfStockItems);
     const normalizedItemName = normalizeMenuItemName(itemName);
     const nextItems = nextAvailable
       ? outOfStockItems.filter((name) => normalizeMenuItemName(name) !== normalizedItemName)
       : [...outOfStockItems, itemName];
 
+    savingItemNameRef.current = itemName;
     setSavingItemName(itemName);
     setOutOfStockItems(nextItems);
+    writeCachedStockItems(nextItems);
 
     try {
       const res = await fetch("/api/stock-status", {
@@ -645,11 +716,19 @@ export default function OwnerRestaurantOrdersPage() {
       if (!data.success) {
         throw new Error(data.error || "Failed to update item availability");
       }
+      const savedItems = Array.isArray(data.outOfStockItems) ? data.outOfStockItems.map(String) : nextItems;
+      setOutOfStockItems(savedItems);
+      writeCachedStockItems(savedItems);
+      if (data.persistent === false) {
+        setSettingsWarning("Permanent database is not connected. Changes are cached in this browser and may reset for customers or after deployment.");
+      }
     } catch (error) {
       console.error("Failed to update item availability:", error);
-      setOutOfStockItems(outOfStockItems);
+      setOutOfStockItems(previousItems);
+      writeCachedStockItems(previousItems);
       alert("Unable to update item availability right now.");
     } finally {
+      savingItemNameRef.current = null;
       setSavingItemName(null);
     }
   };
@@ -810,6 +889,24 @@ export default function OwnerRestaurantOrdersPage() {
                 : "🟢 Open Shop"}
             </button>
           </div>
+
+          {settingsWarning ? (
+            <p
+              style={{
+                margin: "12px 0 0",
+                padding: "9px 11px",
+                border: "1px solid #fde68a",
+                borderRadius: "10px",
+                background: "#fffbeb",
+                color: "#92400e",
+                fontSize: "12px",
+                fontWeight: 800,
+                lineHeight: 1.5,
+              }}
+            >
+              {settingsWarning}
+            </p>
+          ) : null}
 
           <div style={{ marginTop: "16px" }}>
             <p style={{ margin: "0 0 10px", fontSize: "14px", fontWeight: 800, color: "#0f172a" }}>Item Availability</p>

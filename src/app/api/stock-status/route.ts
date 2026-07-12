@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ensureSeedUsers, getUserFromRequest } from "@/src/lib/auth";
-import { getOutOfStockItems, setGlobalOutOfStockItems, setRestaurantOutOfStockItems, toggleRestaurantItemAvailability } from "@/src/lib/ownerSettings";
+import { getOutOfStockItems, ownerSettingsPersistenceSource, setGlobalOutOfStockItems, setRestaurantOutOfStockItems, toggleRestaurantItemAvailability } from "@/src/lib/ownerSettings";
 import { fetchOutOfStockItemsFromSheet, mergeOutOfStockItems } from "@/src/lib/googleSheetStatus";
 
 export const dynamic = "force-dynamic";
@@ -16,13 +16,16 @@ export async function GET(req: NextRequest) {
     const outOfStockItems = mergeOutOfStockItems(sheetItems, savedItems);
 
     return NextResponse.json({
+      success: true,
       outOfStockItems,
       source: sheetItems ? "google-sheet+saved" : "saved",
+      persistence: ownerSettingsPersistenceSource(),
+      persistent: ownerSettingsPersistenceSource() === "database",
     });
 
   } catch (error) {
     console.error("Stock status error:", error);
-    return NextResponse.json({ outOfStockItems: [] });
+    return NextResponse.json({ success: false, error: "Failed to load stock status" }, { status: 500 });
   }
 }
 
@@ -43,17 +46,32 @@ export async function PATCH(req: NextRequest) {
         String(body.itemName),
         body.available !== false
       );
-      return NextResponse.json({ success: true, outOfStockItems: nextItems });
+      return NextResponse.json({
+        success: true,
+        outOfStockItems: nextItems,
+        persistence: ownerSettingsPersistenceSource(),
+        persistent: ownerSettingsPersistenceSource() === "database",
+      });
     }
 
     if (Array.isArray(body.outOfStockItems)) {
       if (body.restaurantId) {
         const nextItems = await setRestaurantOutOfStockItems(restaurantId, body.outOfStockItems.map(String));
-        return NextResponse.json({ success: true, outOfStockItems: nextItems });
+        return NextResponse.json({
+          success: true,
+          outOfStockItems: nextItems,
+          persistence: ownerSettingsPersistenceSource(),
+          persistent: ownerSettingsPersistenceSource() === "database",
+        });
       }
 
       const nextItems = await setGlobalOutOfStockItems(body.outOfStockItems.map(String));
-      return NextResponse.json({ success: true, outOfStockItems: nextItems });
+      return NextResponse.json({
+        success: true,
+        outOfStockItems: nextItems,
+        persistence: ownerSettingsPersistenceSource(),
+        persistent: ownerSettingsPersistenceSource() === "database",
+      });
     }
 
     return NextResponse.json({ success: false, error: "Invalid stock update payload" }, { status: 400 });
