@@ -61,6 +61,17 @@ function numberValue(value: unknown, fallback = 0) {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+function optionalPositiveNumber(value: unknown) {
+  if (value == null || value === "") return undefined;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+}
+
+function nonEmptyString(value: unknown) {
+  const text = stringValue(value).trim();
+  return text || undefined;
+}
+
 function normalizeBrowserOrder(value: unknown): BrowserOrder | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
 
@@ -70,6 +81,8 @@ function normalizeBrowserOrder(value: unknown): BrowserOrder | null {
 
   const restaurantName = stringValue(order.restaurantName ?? order.restaurant_name);
   const inferredRestaurantId = restaurantIdsByName[restaurantName.trim().toLowerCase()] || 0;
+  const itemAmount = optionalPositiveNumber(order.itemAmount ?? order.item_amount);
+  const total = optionalPositiveNumber(order.total) ?? itemAmount ?? 0;
 
   return {
     id,
@@ -77,9 +90,9 @@ function normalizeBrowserOrder(value: unknown): BrowserOrder | null {
     customerPhone: stringValue(order.customerPhone ?? order.customer_phone),
     customerAddress: stringValue(order.customerAddress ?? order.customer_address, "") || null,
     items: stringValue(order.items),
-    itemAmount: numberValue(order.itemAmount ?? order.item_amount),
-    total: numberValue(order.total),
-    timestamp: numberValue(order.timestamp, Date.now()),
+    itemAmount,
+    total,
+    timestamp: numberValue(order.timestamp, 0),
     restaurantName,
     restaurantId: numberValue(order.restaurantId ?? order.restaurant_id, inferredRestaurantId),
     status: normalizeStatus(stringValue(order.status)),
@@ -90,10 +103,25 @@ function normalizeBrowserOrder(value: unknown): BrowserOrder | null {
 
 function mergeIntoMap(byId: Map<string, BrowserOrder>, order: BrowserOrder) {
   const previous = byId.get(order.id);
+  if (!previous) {
+    byId.set(order.id, order);
+    return;
+  }
+
   byId.set(order.id, {
-    ...previous,
-    ...order,
+    id: order.id,
+    customerName: nonEmptyString(order.customerName) ?? previous.customerName,
+    customerPhone: nonEmptyString(order.customerPhone) ?? previous.customerPhone,
+    customerAddress: nonEmptyString(order.customerAddress) ?? previous.customerAddress ?? null,
+    items: nonEmptyString(order.items) ?? previous.items,
+    itemAmount: optionalPositiveNumber(order.itemAmount) ?? optionalPositiveNumber(previous.itemAmount),
+    total: optionalPositiveNumber(order.total) ?? optionalPositiveNumber(previous.total) ?? 0,
+    timestamp: optionalPositiveNumber(order.timestamp) ?? optionalPositiveNumber(previous.timestamp) ?? Date.now(),
+    restaurantName: nonEmptyString(order.restaurantName) ?? previous.restaurantName,
+    restaurantId: optionalPositiveNumber(order.restaurantId) ?? optionalPositiveNumber(previous.restaurantId) ?? 0,
     status: highestStatus(previous?.status, order.status) as string,
+    driver: nonEmptyString(order.driver) ?? previous.driver ?? null,
+    paymentId: nonEmptyString(order.paymentId) ?? previous.paymentId ?? null,
   });
 }
 

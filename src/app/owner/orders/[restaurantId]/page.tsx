@@ -105,6 +105,12 @@ function ownerOrderToBrowserOrder(o: Order): BrowserOrder {
   };
 }
 
+function formatOrderTimestamp(value: unknown, options?: Intl.DateTimeFormatOptions) {
+  const timestamp = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(timestamp) || timestamp <= 0) return "";
+  return new Date(timestamp).toLocaleString(undefined, options);
+}
+
 const restaurantNames: { [key: number]: string } = {
   1: "Momo House",
   2: "Chinese Corner",
@@ -519,7 +525,9 @@ export default function OwnerRestaurantOrdersPage() {
           }
         }
 
-        const sorted = mergeBrowserOrders(orderList.sort((a, b) => b.timestamp - a.timestamp)).map(toOwnerOrder);
+        const sorted = mergeBrowserOrders(orderList.sort((a, b) => b.timestamp - a.timestamp))
+          .map(toOwnerOrder)
+          .filter((order) => order.restaurantId === restaurantId);
         const nextOrders = sorted.length > 0 ? sorted : ordersRef.current;
 
         if (sorted.length === 0 && ordersRef.current.length > 0) {
@@ -1108,7 +1116,11 @@ export default function OwnerRestaurantOrdersPage() {
                   </div>
                   <div style={{ textAlign: "right" }}>
                     <p style={{ margin: "0 0 4px", fontSize: "12px", color: "#64748b" }}>
-                      {formattedTimes[order.id] ? new Date(formattedTimes[order.id]).toLocaleTimeString() : ""}
+                      {formatOrderTimestamp(formattedTimes[order.id], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        second: "2-digit",
+                      })}
                     </p>
                     <p style={{ margin: 0, fontSize: "11px", color: "#94a3b8" }}>
                       ID: {order.id.slice(0, 6)}
@@ -1198,7 +1210,7 @@ export default function OwnerRestaurantOrdersPage() {
                       </p>
                     </div>
                     <div style={{ textAlign: "right" }}>
-                      <p style={{ margin: 0, fontSize: "13px", fontWeight: 700, color: "#94a3b8" }}>{formattedTimes[order.id] ? new Date(Number(formattedTimes[order.id])).toLocaleString() : ""}</p>
+                      <p style={{ margin: 0, fontSize: "13px", fontWeight: 700, color: "#94a3b8" }}>{formatOrderTimestamp(formattedTimes[order.id])}</p>
                       <p style={{ margin: "8px 0 0", fontSize: "13px", fontWeight: 900, color: order.status === "pending" ? "#dc2626" : order.status === "accepted" ? "#0ea5e9" : "#16a34a" }}>{order.status.toUpperCase()}</p>
                     </div>
                   </div>
