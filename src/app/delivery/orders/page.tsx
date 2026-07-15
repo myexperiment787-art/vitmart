@@ -72,8 +72,22 @@ function isAssignedToDeliveryUser(orderDriver: string | null | undefined, user: 
 
 function canShowOrder(order: Order, user: DeliveryUser | null) {
   if (!user) return true;
-  if (!order.driver) return order.status !== "completed";
+  if (!order.driver) return true;
   return isAssignedToDeliveryUser(order.driver, user);
+}
+
+function orderDisplayAmount(order: Order) {
+  return order.total > 0 ? order.total : order.itemAmount && order.itemAmount > 0 ? order.itemAmount : 0;
+}
+
+function formatOrderTime(timestamp: number) {
+  return Number.isFinite(timestamp) && timestamp > 0 ? new Date(timestamp).toLocaleString() : "";
+}
+
+function customerLine(order: Order) {
+  const name = order.customerName?.trim() || "Customer";
+  const phone = order.customerPhone?.trim();
+  return phone ? `${name} • ${phone}` : name;
 }
 
 export default function DeliveryOrdersPage() {
@@ -144,7 +158,7 @@ export default function DeliveryOrdersPage() {
     const previousOrders = ordersRef.current.length > 0 ? ordersRef.current : orders;
     const nextOrders = previousOrders.map((order) =>
       order.id === orderId
-        ? { ...order, status, ...(status === "picked" && deliveryUser ? { driver: deliveryUser.driverLabel } : {}) }
+        ? { ...order, status, ...((status === "picked" || status === "completed") && deliveryUser ? { driver: deliveryUser.driverLabel } : {}) }
         : order
     );
     ordersRef.current = nextOrders;
@@ -374,14 +388,14 @@ export default function DeliveryOrdersPage() {
                       <div key={o.id} style={{ ...cardBase, display: "flex", justifyContent: "space-between", gap: 12, borderLeft: "6px solid #f59e0b" }} className="card-row">
                         <div style={{ flex: 1 }}>
                           <div style={{ fontSize: 15, fontWeight: 900 }}>{o.restaurantName} <span style={{ fontSize: 13, marginLeft: 8, color: "#6b7280" }}>· {o.restaurantId}</span></div>
-                          <div style={{ marginTop: 6, fontWeight: 800 }}>{o.customerName} • {o.customerPhone}</div>
+                          <div style={{ marginTop: 6, fontWeight: 800 }}>{customerLine(o)}</div>
                           <div style={{ marginTop: 8, color: "#334155" }}>{o.items}</div>
                           <div style={{ marginTop: 8, fontWeight: 700 }}>Deliver to: {o.customerAddress || "Not provided"}</div>
                         </div>
                         <div style={{ minWidth: 180, display: "flex", flexDirection: "column", gap: 8, alignItems: "stretch" }}>
-                          <div style={{ fontSize: 13, color: "#94a3b8", textAlign: "right" }}>{new Date(o.timestamp).toLocaleString()}</div>
+                          <div style={{ fontSize: 13, color: "#94a3b8", textAlign: "right" }}>{formatOrderTime(o.timestamp)}</div>
                           <div style={{ textAlign: "right", marginRight: 6, marginBottom: 8 }}>
-                            <div style={{ fontSize: 18, fontWeight: 900, color: "#0f172a" }}>₹{o.total ?? (o.itemAmount ?? 0)}</div>
+                            <div style={{ fontSize: 18, fontWeight: 900, color: "#0f172a" }}>₹{orderDisplayAmount(o)}</div>
                           </div>
                           <div style={{ display: "flex", gap: 8 }}>
                             <button disabled={!!updating} onClick={() => updateStatus(o.id, "picked")} style={btnPrimary}>{updating === o.id ? "..." : "Mark picked"}</button>
@@ -401,14 +415,14 @@ export default function DeliveryOrdersPage() {
                       <div key={o.id} style={{ ...cardBase, display: "flex", justifyContent: "space-between", gap: 12, borderLeft: "6px solid #2563eb" }} className="card-row">
                         <div style={{ flex: 1 }}>
                           <div style={{ fontSize: 15, fontWeight: 900 }}>{o.restaurantName}</div>
-                          <div style={{ marginTop: 6, fontWeight: 800 }}>{o.customerName} • {o.customerPhone}</div>
+                          <div style={{ marginTop: 6, fontWeight: 800 }}>{customerLine(o)}</div>
                           <div style={{ marginTop: 8, color: "#334155" }}>{o.items}</div>
                           <div style={{ marginTop: 8, fontWeight: 700 }}>Deliver to: {o.customerAddress || "Not provided"}</div>
                         </div>
                         <div style={{ minWidth: 180, display: "flex", flexDirection: "column", gap: 8, alignItems: "stretch" }}>
-                          <div style={{ fontSize: 13, color: "#94a3b8", textAlign: "right" }}>{new Date(o.timestamp).toLocaleString()}</div>
+                          <div style={{ fontSize: 13, color: "#94a3b8", textAlign: "right" }}>{formatOrderTime(o.timestamp)}</div>
                           <div style={{ textAlign: "right", marginRight: 6, marginBottom: 8 }}>
-                            <div style={{ fontSize: 18, fontWeight: 900, color: "#0f172a" }}>₹{o.total ?? (o.itemAmount ?? 0)}</div>
+                            <div style={{ fontSize: 18, fontWeight: 900, color: "#0f172a" }}>₹{orderDisplayAmount(o)}</div>
                           </div>
                           <div style={{ display: "flex", gap: 8 }}>
                             <button disabled={!!updating} onClick={() => updateStatus(o.id, "completed")} style={btnSuccess}>{updating === o.id ? "..." : "Mark delivered"}</button>
@@ -427,13 +441,13 @@ export default function DeliveryOrdersPage() {
                     {delivered.slice(0, 30).map((o) => (
                       <div key={o.id} style={{ borderRadius: 10, padding: 14, background: "#f8fafc", border: "1px solid #e6eef8", display: "flex", justifyContent: "space-between", alignItems: "center", borderLeft: "6px solid #10b981" }} className="card-row">
                         <div>
-                          <div style={{ fontWeight: 900, fontSize: 18 }}>{o.customerName} <span style={{ fontWeight: 800, fontSize: 15, color: "#334155" }}>• {o.customerPhone}</span></div>
+                          <div style={{ fontWeight: 900, fontSize: 18 }}>{customerLine(o)}</div>
                           <div style={{ fontSize: 15, color: "#334155", marginTop: 6 }}>{o.items}</div>
                           <div style={{ marginTop: 8, fontWeight: 700 }}>Deliver to: {o.customerAddress || "Not provided"}</div>
                         </div>
                         <div style={{ textAlign: "right", minWidth: 140 }}>
-                          <div style={{ fontWeight: 900, fontSize: 18 }}>₹{o.total ?? (o.itemAmount ?? 0)}</div>
-                          <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 6 }}>{new Date(o.timestamp).toLocaleString()}</div>
+                          <div style={{ fontWeight: 900, fontSize: 18 }}>₹{orderDisplayAmount(o)}</div>
+                          <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 6 }}>{formatOrderTime(o.timestamp)}</div>
                         </div>
                       </div>
                     ))}

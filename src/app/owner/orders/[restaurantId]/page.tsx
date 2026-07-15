@@ -111,6 +111,16 @@ function formatOrderTimestamp(value: unknown, options?: Intl.DateTimeFormatOptio
   return new Date(timestamp).toLocaleString(undefined, options);
 }
 
+function orderDisplayAmount(order: Order) {
+  return order.itemAmount && order.itemAmount > 0 ? order.itemAmount : order.total > 0 ? order.total : 0;
+}
+
+function customerLine(order: Order) {
+  const name = order.customerName?.trim() || "Customer";
+  const phone = order.customerPhone?.trim();
+  return phone ? `${name} • ${phone}` : name;
+}
+
 const restaurantNames: { [key: number]: string } = {
   1: "Momo House",
   2: "Chinese Corner",
@@ -1138,7 +1148,7 @@ export default function OwnerRestaurantOrdersPage() {
                   }}
                 >
                   <p style={{ margin: "0 0 6px", fontSize: "13px", fontWeight: 700, color: "#0f172a" }}>
-                    👤 {order.customerName} • {order.customerPhone}
+                    👤 {customerLine(order)}
                   </p>
                     {order.customerAddress && (
                       <p style={{ margin: "6px 0 6px", fontSize: "13px", color: "#374151" }}>
@@ -1154,7 +1164,7 @@ export default function OwnerRestaurantOrdersPage() {
                     {order.items}
                   </p>
                   <p style={{ margin: 0, fontSize: "18px", fontWeight: 900, color: "#16a34a" }}>
-                    Item Amount: ₹{order.itemAmount ?? order.total}
+                    Item Amount: ₹{orderDisplayAmount(order)}
                   </p>
                 </div>
 
@@ -1194,7 +1204,7 @@ export default function OwnerRestaurantOrdersPage() {
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "12px" }}>
                     <div>
                       <p style={{ margin: 0, fontSize: "19px", fontWeight: 900, color: "#0f172a", lineHeight: 1.35 }}>
-                        {order.customerName} • {order.customerPhone}
+                        {customerLine(order)}
                       </p>
                       {order.customerAddress && (
                         <p style={{ margin: "6px 0 0", fontSize: "13px", color: "#374151" }}>📍 {order.customerAddress}</p>
@@ -1203,7 +1213,7 @@ export default function OwnerRestaurantOrdersPage() {
                         <p style={{ margin: "6px 0 0", fontSize: "13px", color: "#374151" }}>🧑‍🚚 {order.driver}</p>
                       )}
                       <p style={{ margin: "8px 0 0", fontSize: "17px", fontWeight: 900, color: "#2563eb", lineHeight: 1.5 }}>
-                        Item Amount: ₹{order.itemAmount ?? order.total}
+                        Item Amount: ₹{orderDisplayAmount(order)}
                       </p>
                       <p style={{ margin: "6px 0 0", fontSize: "15px", fontWeight: 700, color: "#334155", lineHeight: 1.5 }}>
                         {order.items}

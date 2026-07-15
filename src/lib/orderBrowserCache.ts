@@ -72,6 +72,25 @@ function nonEmptyString(value: unknown) {
   return text || undefined;
 }
 
+function orderAmount(order: Pick<BrowserOrder, "total" | "itemAmount">) {
+  return optionalPositiveNumber(order.total) ?? optionalPositiveNumber(order.itemAmount);
+}
+
+function orderQuality(order: BrowserOrder) {
+  return [
+    nonEmptyString(order.customerName),
+    nonEmptyString(order.customerPhone),
+    nonEmptyString(order.customerAddress),
+    nonEmptyString(order.items),
+    nonEmptyString(order.restaurantName),
+    optionalPositiveNumber(order.restaurantId),
+    orderAmount(order),
+    optionalPositiveNumber(order.timestamp),
+    nonEmptyString(order.driver),
+    nonEmptyString(order.paymentId),
+  ].filter(Boolean).length;
+}
+
 function normalizeBrowserOrder(value: unknown): BrowserOrder | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
 
@@ -108,8 +127,13 @@ function mergeIntoMap(byId: Map<string, BrowserOrder>, order: BrowserOrder) {
     return;
   }
 
+  const preferredId =
+    previous.id.startsWith("order_") || !order.id.startsWith("order_")
+      ? previous.id
+      : order.id;
+
   byId.set(order.id, {
-    id: order.id,
+    id: preferredId,
     customerName: nonEmptyString(order.customerName) ?? previous.customerName,
     customerPhone: nonEmptyString(order.customerPhone) ?? previous.customerPhone,
     customerAddress: nonEmptyString(order.customerAddress) ?? previous.customerAddress ?? null,
@@ -123,6 +147,59 @@ function mergeIntoMap(byId: Map<string, BrowserOrder>, order: BrowserOrder) {
     driver: nonEmptyString(order.driver) ?? previous.driver ?? null,
     paymentId: nonEmptyString(order.paymentId) ?? previous.paymentId ?? null,
   });
+}
+
+function normalizedText(value: unknown) {
+  return stringValue(value).toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function areLikelySameOrder(a: BrowserOrder, b: BrowserOrder) {
+  if (a.id === b.id) return true;
+  const samePayment = nonEmptyString(a.paymentId) && a.paymentId === b.paymentId;
+  if (samePayment) return true;
+
+  const aIncomplete = !nonEmptyString(a.customerName) || !nonEmptyString(a.customerPhone) || !orderAmount(a);
+  const bIncomplete = !nonEmptyString(b.customerName) || !nonEmptyString(b.customerPhone) || !orderAmount(b);
+  if (!aIncomplete && !bIncomplete) return false;
+
+  const restaurantA = optionalPositiveNumber(a.restaurantId) ?? normalizedText(a.restaurantName);
+  const restaurantB = optionalPositiveNumber(b.restaurantId) ?? normalizedText(b.restaurantName);
+  if (!restaurantA || !restaurantB || restaurantA !== restaurantB) return false;
+
+  const itemsA = normalizedText(a.items);
+  const itemsB = normalizedText(b.items);
+  if (!itemsA || !itemsB || itemsA !== itemsB) return false;
+
+  const timeA = optionalPositiveNumber(a.timestamp);
+  const timeB = optionalPositiveNumber(b.timestamp);
+  if (timeA && timeB && Math.abs(timeA - timeB) <= 30 * 60 * 1000) return true;
+
+  const amountA = orderAmount(a);
+  const amountB = orderAmount(b);
+  if (amountA && amountB && amountA === amountB) return true;
+
+  const addressA = normalizedText(a.customerAddress);
+  const addressB = normalizedText(b.customerAddress);
+  return Boolean(addressA && addressB && addressA === addressB);
+}
+
+function mergeSimilarOrders(orders: BrowserOrder[]) {
+  const merged: BrowserOrder[] = [];
+
+  for (const order of orders.sort((a, b) => orderQuality(b) - orderQuality(a))) {
+    const index = merged.findIndex((candidate) => areLikelySameOrder(candidate, order));
+    if (index < 0) {
+      merged.push(order);
+      continue;
+    }
+
+    const byId = new Map<string, BrowserOrder>();
+    mergeIntoMap(byId, merged[index]);
+    mergeIntoMap(byId, { ...order, id: merged[index].id });
+    merged[index] = Array.from(byId.values())[0];
+  }
+
+  return merged.sort((a, b) => Number(b.timestamp) - Number(a.timestamp));
 }
 
 function readOrdersFromStorageKey(key: string) {
@@ -149,7 +226,7 @@ export function readBrowserOrders(): BrowserOrder[] {
       }
     }
 
-    return Array.from(byId.values()).sort((a, b) => Number(b.timestamp) - Number(a.timestamp));
+    return mergeSimilarOrders(Array.from(byId.values()));
   } catch {
     return [];
   }
@@ -169,7 +246,7 @@ export function saveBrowserOrders(orders: BrowserOrder[]) {
       if (normalized) mergeIntoMap(byId, normalized);
     }
 
-    const merged = Array.from(byId.values()).sort((a, b) => Number(b.timestamp) - Number(a.timestamp));
+    const merged = mergeSimilarOrders(Array.from(byId.values()));
     window.localStorage.setItem(ORDER_CACHE_KEY, JSON.stringify(merged));
   } catch {
     // ignore storage failures in browser
@@ -195,5 +272,5 @@ export function mergeBrowserOrders(backendOrders: BrowserOrder[]) {
     if (normalized) mergeIntoMap(byId, normalized);
   }
 
-  return Array.from(byId.values()).sort((a, b) => Number(b.timestamp) - Number(a.timestamp));
+  return mergeSimilarOrders(Array.from(byId.values()));
 }
