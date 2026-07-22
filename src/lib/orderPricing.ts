@@ -33,9 +33,11 @@ const foodMenuPrices: Record<string, number> = {
   "French Fries (Half)": 30,
   "French Fries (Full)": 50,
   "Chowmein (Half)": 50,
-  "Chowmein (Full)": 70,
+  "Chowmein (Full)": 80,
   "Manchurian (Half)": 50,
-  "Manchurian (Full)": 70,
+  "Manchurian (Full)": 80,
+  "Aloo Paratha (with Pickle)": 100,
+  "Aloo Paratha (with Curd)": 130,
 };
 
 const restaurantCatalog: Record<number, { name: string; menu: Record<string, number> }> = {

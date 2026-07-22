@@ -4,6 +4,7 @@ export function normalizeMenuItemName(name: string) {
     .toLowerCase()
     .replace(/\s+/g, " ")
     .replace(/\s*\((half|full)\)\s*$/i, "")
+    .replace(/\s*\(with\s+(pickle|curd)\)\s*$/i, "")
     .replace(/\s*\(\d+\s*pcs?\)\s*$/i, "");
 }
 

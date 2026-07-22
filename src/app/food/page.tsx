@@ -20,21 +20,73 @@ type FoodOrderSuccess = {
   total: number;
 };
 
+type ShopStatusResponse = {
+  status?: string;
+};
+
+type StockStatusResponse = {
+  outOfStockItems?: unknown;
+};
+
+type OrderCreateResponse = {
+  success?: boolean;
+  order?: {
+    amount: number;
+    id: string;
+  };
+};
+
+type OrderVerifyResponse = {
+  success?: boolean;
+  savedOrder?: Record<string, unknown>;
+  savedOrderId?: string | number;
+  paymentId?: string;
+  telegramSent?: boolean;
+  ownerWhatsappUrl?: string;
+  customerWhatsappUrl?: string | null;
+};
+
+async function readApiJson<T>(response: Response): Promise<T | null> {
+  const contentType = response.headers.get("content-type") || "";
+  if (!response.ok || !contentType.includes("application/json")) {
+    return null;
+  }
+  return response.json() as Promise<T>;
+}
+
 // Items with single price
 const singleItems = [
   { name: "Pani Puri (6 pcs)", price: 20, image: "/food/panipuri.jpg", desc: "Crispy puris with spicy tangy water, potatoes & chickpeas", tag: "Bestseller", tagColor: "#f5576c", available: true },
   { name: "Spring Roll", price: 60, image: "/food/springroll.jpg", desc: "Crispy rolls stuffed with veggies & spices", tag: null, tagColor: "", available: true },
 ];
 
-// Items with half & full price
-const halfFullItems = [
+type HalfFullItem = {
+  name: string;
+  halfPrice: number;
+  fullPrice: number;
+  halfDesc: string;
+  fullDesc: string;
+  image: string;
+  desc: string;
+  tag: string | null;
+  tagColor: string;
+  available: boolean;
+  halfLabel?: string;
+  fullLabel?: string;
+  halfCartSuffix?: string;
+  fullCartSuffix?: string;
+};
+
+// Items with two price options
+const halfFullItems: HalfFullItem[] = [
+  { name: "Aloo Paratha", halfPrice: 100, fullPrice: 130, halfDesc: "2 pcs with pickle", fullDesc: "2 pcs with curd", image: "/food/alooparatha.png", desc: "Stuffed aloo paratha served hot with your choice of pickle or curd", tag: "New", tagColor: "#0ea5e9", available: true, halfLabel: "PICKLE", fullLabel: "CURD", halfCartSuffix: "with Pickle", fullCartSuffix: "with Curd" },
   { name: "Veg Momo", halfPrice: 50, fullPrice: 80, halfDesc: "6 pcs", fullDesc: "12 pcs", image: "/food/vegmomo.jpg", desc: "Steamed dumplings stuffed with fresh vegetables & spices", tag: "Popular", tagColor: "#f5576c", available: true },
   { name: "Fried Momo", halfPrice: 50, fullPrice: 80, halfDesc: "6 pcs", fullDesc: "12 pcs", image: "/food/friedmomo.jpg", desc: "Crispy fried dumplings served with spicy chutney", tag: "Popular", tagColor: "#f5576c", available: true },
   { name: "Paneer Momo", halfPrice: 60, fullPrice: 90, halfDesc: "6 pcs", fullDesc: "12 pcs", image: "/food/pannermomo.jpg", desc: "Juicy momos stuffed with spiced paneer filling", tag: "Popular", tagColor: "#f5576c", available: true },
   { name: "Chilli Potato", halfPrice: 50, fullPrice: 80, halfDesc: "Half", fullDesc: "Full", image: "/food/chillipotato.jpg", desc: "Crispy potatoes tossed in spicy chilli sauce", tag: "Spicy 🌶️", tagColor: "#ff6b35", available: true },
   { name: "French Fries", halfPrice: 30, fullPrice: 50, halfDesc: "Half", fullDesc: "Full", image: "/food/frenchfries.jpg", desc: "Golden crispy fries served with ketchup", tag: "Bestseller", tagColor: "#43e97b", available: true },
-  { name: "Chowmein", halfPrice: 50, fullPrice: 70, halfDesc: "Half", fullDesc: "Full", image: "/food/chowmein.jpg", desc: "Stir fried noodles with veggies & sauces", tag: null, tagColor: "", available: true },
-  { name: "Manchurian", halfPrice: 50, fullPrice: 70, halfDesc: "6 pcs", fullDesc: "12 pcs", image: "/food/manchurian.jpg", desc: "Crispy veg balls in spicy manchurian sauce", tag: "Popular", tagColor: "#f5576c", available: true },
+  { name: "Chowmein", halfPrice: 50, fullPrice: 80, halfDesc: "Half", fullDesc: "Full", image: "/food/chowmein.jpg", desc: "Stir fried noodles with veggies & sauces", tag: null, tagColor: "", available: true },
+  { name: "Manchurian", halfPrice: 50, fullPrice: 80, halfDesc: "6 pcs", fullDesc: "12 pcs", image: "/food/manchurian.jpg", desc: "Crispy veg balls in spicy manchurian sauce", tag: "Popular", tagColor: "#f5576c", available: true },
 ];
 
 export default function FoodPage() {
@@ -67,8 +119,8 @@ export default function FoodPage() {
     const checkShopStatus = async () => {
       try {
         const res = await fetch("/api/shop-status", { cache: "no-store" });
-        const data = await res.json();
-        setShopOpen(data.status === "OPEN");
+        const data = await readApiJson<ShopStatusResponse>(res);
+        setShopOpen(data?.status ? data.status === "OPEN" : true);
       } catch {
         setShopOpen(true);
       }
@@ -83,12 +135,10 @@ export default function FoodPage() {
     const checkStockStatus = async () => {
       try {
         const res = await fetch("/api/stock-status", { cache: "no-store" });
-        const data = await res.json();
-        const outOfStock = data.outOfStockItems || [];
-        console.log("Out of stock items:", outOfStock);
+        const data = await readApiJson<StockStatusResponse>(res);
+        const outOfStock = Array.isArray(data?.outOfStockItems) ? data.outOfStockItems.map(String) : [];
         setOutOfStockItems(outOfStock);
-      } catch (error) {
-        console.error("Stock status fetch error:", error);
+      } catch {
         setOutOfStockItems([]);
       }
     };
@@ -137,8 +187,8 @@ export default function FoodPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ amount: total, receipt: `food_${Date.now()}`, cartItems: cart, restaurantId: 0 }),
       });
-      const data = await res.json();
-      if (!data.success) throw new Error("Order creation failed");
+      const data = await readApiJson<OrderCreateResponse>(res);
+      if (!data?.success || !data.order) throw new Error("Order creation failed");
       const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount: data.order.amount,
@@ -161,8 +211,8 @@ export default function FoodPage() {
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ ...response, cartItems: cart, total, customerName, customerPhone }),
             });
-            const verifyData = await verifyRes.json();
-            if (verifyData.success) {
+            const verifyData = await readApiJson<OrderVerifyResponse>(verifyRes);
+            if (verifyData?.success) {
               saveBrowserOrder({
                 ...(verifyData.savedOrder || {}),
                 id: String(verifyData.savedOrderId || verifyData.paymentId || response.razorpay_payment_id || `order_${Date.now()}`),
@@ -179,7 +229,7 @@ export default function FoodPage() {
                 driver: null,
                 paymentId: verifyData.paymentId || response.razorpay_payment_id || null,
               });
-              setOrderSuccess({ telegramSent: verifyData.telegramSent, ownerWhatsappUrl: verifyData.ownerWhatsappUrl, customerWhatsappUrl: verifyData.customerWhatsappUrl, customerPhone, customerName, total });
+              setOrderSuccess({ telegramSent: Boolean(verifyData.telegramSent), ownerWhatsappUrl: verifyData.ownerWhatsappUrl || "", customerWhatsappUrl: verifyData.customerWhatsappUrl || null, customerPhone, customerName, total });
             } else {
               alert("⚠️ Payment verification failed.");
             }
@@ -189,7 +239,7 @@ export default function FoodPage() {
       };
       const rzp = new window.Razorpay(options);
       rzp.open();
-    } catch (err) { console.error(err); alert("Something went wrong."); }
+    } catch { alert("Something went wrong."); }
     finally { setPayLoading(false); }
   };
 
@@ -285,6 +335,10 @@ export default function FoodPage() {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "24px", marginBottom: "40px" }}>
             {halfFullItems.map((item) => {
               const available = isItemAvailable(item.name);
+              const halfLabel = item.halfLabel || "HALF";
+              const fullLabel = item.fullLabel || "FULL";
+              const halfCartName = `${item.name} (${item.halfCartSuffix || "Half"})`;
+              const fullCartName = `${item.name} (${item.fullCartSuffix || "Full"})`;
               return (
               <div key={item.name}
                 style={{ background: "white", borderRadius: "20px", overflow: "hidden", boxShadow: "0 8px 24px rgba(0,0,0,0.08)", opacity: available ? 1 : 0.6, transition: "transform 0.3s ease, box-shadow 0.3s ease" }}
@@ -302,43 +356,41 @@ export default function FoodPage() {
                   <h3 style={{ fontSize: "17px", fontWeight: "800", color: "#2d3436", marginBottom: "4px" }}>{item.name}</h3>
                   <p style={{ fontSize: "12px", color: "#636e72", lineHeight: "1.5", marginBottom: "14px" }}>{item.desc}</p>
 
-                  {/* Half / Full buttons */}
+                  {/* Two option buttons */}
                   {available ? (
                     <div style={{ display: "flex", gap: "10px" }}>
-                      {/* HALF */}
                       <div style={{ flex: 1, background: "#fff8f0", borderRadius: "12px", padding: "10px", textAlign: "center", border: "2px solid #ffd4a8" }}>
-                        <div style={{ fontSize: "11px", fontWeight: "700", color: "#ff6b35", marginBottom: "4px" }}>HALF</div>
+                        <div style={{ fontSize: "11px", fontWeight: "700", color: "#ff6b35", marginBottom: "4px" }}>{halfLabel}</div>
                         <div style={{ fontSize: "13px", color: "#636e72", marginBottom: "6px" }}>{item.halfDesc}</div>
                         <div style={{ fontSize: "18px", fontWeight: "900", color: "#ff6b35", marginBottom: "8px" }}>₹{item.halfPrice}</div>
-                        {getQty(`${item.name} (Half)`) > 0 ? (
+                        {getQty(halfCartName) > 0 ? (
                           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>
-                            <button onClick={() => decreaseQty(`${item.name} (Half)`, "food")} style={{ width: "24px", height: "24px", borderRadius: "50%", background: "#ef4444", color: "white", border: "none", cursor: "pointer", fontWeight: "bold", fontSize: "14px" }}>−</button>
-                            <span style={{ fontWeight: "800", fontSize: "14px" }}>{getQty(`${item.name} (Half)`)}</span>
-                            <button onClick={() => increaseQty(`${item.name} (Half)`, "food")} style={{ width: "24px", height: "24px", borderRadius: "50%", background: "#16a34a", color: "white", border: "none", cursor: "pointer", fontWeight: "bold", fontSize: "14px" }}>+</button>
+                            <button onClick={() => decreaseQty(halfCartName, "food")} style={{ width: "24px", height: "24px", borderRadius: "50%", background: "#ef4444", color: "white", border: "none", cursor: "pointer", fontWeight: "bold", fontSize: "14px" }}>−</button>
+                            <span style={{ fontWeight: "800", fontSize: "14px" }}>{getQty(halfCartName)}</span>
+                            <button onClick={() => increaseQty(halfCartName, "food")} style={{ width: "24px", height: "24px", borderRadius: "50%", background: "#16a34a", color: "white", border: "none", cursor: "pointer", fontWeight: "bold", fontSize: "14px" }}>+</button>
                           </div>
                         ) : (
-                          <button onClick={() => handleAdd(`${item.name} (Half)`, item.halfPrice, item.image)}
-                            style={{ background: added === `${item.name} (Half)` ? "linear-gradient(135deg, #43e97b, #38f9d7)" : "linear-gradient(135deg, #ff9a56, #ff6b35)", color: "white", border: "none", borderRadius: "50px", padding: "6px 14px", fontWeight: "700", cursor: "pointer", fontSize: "12px", width: "100%" }}>
-                            {added === `${item.name} (Half)` ? "✓ Added!" : "+ Add"}
+                          <button onClick={() => handleAdd(halfCartName, item.halfPrice, item.image)}
+                            style={{ background: added === halfCartName ? "linear-gradient(135deg, #43e97b, #38f9d7)" : "linear-gradient(135deg, #ff9a56, #ff6b35)", color: "white", border: "none", borderRadius: "50px", padding: "6px 14px", fontWeight: "700", cursor: "pointer", fontSize: "12px", width: "100%" }}>
+                            {added === halfCartName ? "✓ Added!" : "+ Add"}
                           </button>
                         )}
                       </div>
 
-                      {/* FULL */}
                       <div style={{ flex: 1, background: "#f0fff4", borderRadius: "12px", padding: "10px", textAlign: "center", border: "2px solid #c6f6d5" }}>
-                        <div style={{ fontSize: "11px", fontWeight: "700", color: "#16a34a", marginBottom: "4px" }}>FULL</div>
+                        <div style={{ fontSize: "11px", fontWeight: "700", color: "#16a34a", marginBottom: "4px" }}>{fullLabel}</div>
                         <div style={{ fontSize: "13px", color: "#636e72", marginBottom: "6px" }}>{item.fullDesc}</div>
                         <div style={{ fontSize: "18px", fontWeight: "900", color: "#16a34a", marginBottom: "8px" }}>₹{item.fullPrice}</div>
-                        {getQty(`${item.name} (Full)`) > 0 ? (
+                        {getQty(fullCartName) > 0 ? (
                           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>
-                            <button onClick={() => decreaseQty(`${item.name} (Full)`, "food")} style={{ width: "24px", height: "24px", borderRadius: "50%", background: "#ef4444", color: "white", border: "none", cursor: "pointer", fontWeight: "bold", fontSize: "14px" }}>−</button>
-                            <span style={{ fontWeight: "800", fontSize: "14px" }}>{getQty(`${item.name} (Full)`)}</span>
-                            <button onClick={() => increaseQty(`${item.name} (Full)`, "food")} style={{ width: "24px", height: "24px", borderRadius: "50%", background: "#16a34a", color: "white", border: "none", cursor: "pointer", fontWeight: "bold", fontSize: "14px" }}>+</button>
+                            <button onClick={() => decreaseQty(fullCartName, "food")} style={{ width: "24px", height: "24px", borderRadius: "50%", background: "#ef4444", color: "white", border: "none", cursor: "pointer", fontWeight: "bold", fontSize: "14px" }}>−</button>
+                            <span style={{ fontWeight: "800", fontSize: "14px" }}>{getQty(fullCartName)}</span>
+                            <button onClick={() => increaseQty(fullCartName, "food")} style={{ width: "24px", height: "24px", borderRadius: "50%", background: "#16a34a", color: "white", border: "none", cursor: "pointer", fontWeight: "bold", fontSize: "14px" }}>+</button>
                           </div>
                         ) : (
-                          <button onClick={() => handleAdd(`${item.name} (Full)`, item.fullPrice, item.image)}
-                            style={{ background: added === `${item.name} (Full)` ? "linear-gradient(135deg, #43e97b, #38f9d7)" : "linear-gradient(135deg, #43e97b, #38f9d7)", color: "white", border: "none", borderRadius: "50px", padding: "6px 14px", fontWeight: "700", cursor: "pointer", fontSize: "12px", width: "100%" }}>
-                            {added === `${item.name} (Full)` ? "✓ Added!" : "+ Add"}
+                          <button onClick={() => handleAdd(fullCartName, item.fullPrice, item.image)}
+                            style={{ background: added === fullCartName ? "linear-gradient(135deg, #43e97b, #38f9d7)" : "linear-gradient(135deg, #43e97b, #38f9d7)", color: "white", border: "none", borderRadius: "50px", padding: "6px 14px", fontWeight: "700", cursor: "pointer", fontSize: "12px", width: "100%" }}>
+                            {added === fullCartName ? "✓ Added!" : "+ Add"}
                           </button>
                         )}
                       </div>
